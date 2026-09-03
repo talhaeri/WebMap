@@ -1,0 +1,96 @@
+﻿html, body {
+    height: 100%;
+    margin: 0;
+}
+
+/* _Layout.cshtml'deki <main>, ekranin geri kalan tum alanini kaplasin. */
+main {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.map-wrapper {
+    position: relative;
+    flex: 1;
+}
+
+#map {
+    width: 100%;
+    height: 100%;
+}
+
+/* Arac cubugu: haritanin en ustunde duran beyaz serit */
+.toolbar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px;
+    background: #fff;
+    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
+}
+
+/* Arac cubugu icindeki butonlar: sadece ikon, kare kutu */
+.toolbar-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: none;
+    border-radius: 4px;
+    background: #f1f1f1;
+    cursor: pointer;
+}
+
+    .toolbar-btn.active {
+        background: #0d6efd;
+    }
+
+.fiber-secili {
+    filter: drop-shadow(0 0 6px #e74c3c);
+}
+
+.fiber-ipucu {
+    font: 13px/1 sans-serif;
+    color: #e74c3c;
+}
+
+/* Menhol = daire, Kabin = kare ikon (Leaflet divIcon) */
+.ikon {
+    background: #2c3e50;
+    border: 2px solid #fff;
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
+}
+
+.ikon-menhol {
+    border-radius: 50%;
+}
+
+.ikon-kabin {
+    border-radius: 2px;
+}
+
+/* Popup icindeki form */
+.leaflet-popup-content form label {
+    display: block;
+    margin-bottom: 6px;
+    font: 13px/1.4 sans-serif;
+}
+
+.leaflet-popup-content form input,
+.leaflet-popup-content form select {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.leaflet-popup-content button {
+    margin-top: 4px;
+}
