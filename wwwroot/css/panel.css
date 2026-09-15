@@ -1,0 +1,288 @@
+/* Giris ve kullanici yonetimi sayfalarinin ortak stili.
+   Renkler, yaricaplar ve golgeler map.css'teki harita arayuzunden alindi;
+   iki sayfa da haritayla ayni dili konussun diye tek dosyada toplandi. */
+
+:root {
+    --mavi: #0d6efd;
+    --mavi-koyu: #0b5ed7;
+    --kirmizi: #e74c3c;
+    --kirmizi-koyu: #d84332;
+    --mor: #9b59b6;
+
+    --yuzey: #fff;
+    --zemin: #eef1f5;
+    --notr: #f1f1f1;
+    --notr-koyu: #e2e2e2;
+    --cizgi: #ddd;
+
+    --metin: #1f2a36;
+    --soluk: #6b7785;
+
+    --yuvarlak: 6px;          /* toolbar butonlariyla ayni */
+    --yuvarlak-buyuk: 10px;   /* rapor penceresiyle ayni */
+    --golge-serit: 0 1px 5px rgba(0, 0, 0, .4);
+    --golge-kart: 0 12px 40px rgba(0, 0, 0, .3);
+    --odak: 0 0 0 2px rgba(13, 110, 253, .35);
+
+    --yazi: 13px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+html, body {
+    height: 100%;
+    margin: 0;
+}
+
+body {
+    background: var(--zemin);
+    color: var(--metin);
+    font: var(--yazi);
+}
+
+/* ===== Ortak form ogeleri ===== */
+.alan {
+    display: block;
+    margin-bottom: 14px;
+    color: var(--soluk);
+    font-size: 12px;
+}
+
+    .alan input,
+    .alan select {
+        display: block;
+        width: 100%;
+        margin-top: 5px;
+        padding: 9px 10px;
+        border: 1px solid var(--cizgi);
+        border-radius: var(--yuvarlak);
+        box-sizing: border-box;
+        color: var(--metin);
+        font: var(--yazi);
+    }
+
+        .alan input:focus,
+        .alan select:focus {
+            outline: none;
+            border-color: var(--mavi);
+            box-shadow: var(--odak);
+        }
+
+/* ===== Butonlar ===== */
+.dugme {
+    padding: 9px 16px;
+    border: none;
+    border-radius: var(--yuvarlak);
+    background: var(--notr);
+    color: var(--metin);
+    font: var(--yazi);
+    text-decoration: none;
+    cursor: pointer;
+    transition: background .15s ease;
+}
+
+    .dugme:hover {
+        background: var(--notr-koyu);
+    }
+
+.dugme-birincil {
+    background: var(--mavi);
+    color: #fff;
+}
+
+    .dugme-birincil:hover {
+        background: var(--mavi-koyu);
+    }
+
+.dugme-tehlike {
+    padding: 5px 12px;
+    background: var(--kirmizi);
+    color: #fff;
+    font-size: 12px;
+}
+
+    .dugme-tehlike:hover {
+        background: var(--kirmizi-koyu);
+    }
+
+/* ===== Bildirim seritleri ===== */
+.uyari {
+    margin: 0 0 16px;
+    padding: 9px 11px;
+    border-radius: var(--yuvarlak);
+    font-size: 12px;
+}
+
+.uyari-hata {
+    background: #fdecea;
+    color: #b3261e;
+}
+
+.uyari-bilgi {
+    background: #e8f5ec;
+    color: #1d6b39;
+}
+
+/* ===== Giris sayfasi ===== */
+.giris-kabuk {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 24px;
+    box-sizing: border-box;
+}
+
+.giris-kart {
+    width: 320px;
+    padding: 28px;
+    border-radius: var(--yuvarlak-buyuk);
+    background: var(--yuzey);
+    box-shadow: var(--golge-kart);
+}
+
+.giris-alt {
+    margin: 0 0 20px;
+    color: var(--soluk);
+    font-size: 12px;
+}
+
+.giris-kart button.dugme {
+    width: 100%;
+    margin-top: 4px;
+}
+
+/* ===== Yonetim paneli ===== */
+/* Ust serit haritanin arac cubugunun aynisi: ayni beyaz, ayni golge */
+.panel-ust {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    background: var(--yuzey);
+    box-shadow: var(--golge-serit);
+}
+
+    .panel-ust h1 {
+        flex: 1;
+        margin: 0;
+        font-size: 15px;
+        font-weight: 600;
+    }
+
+.panel-icerik {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 24px 16px 48px;
+}
+
+.panel-kart {
+    padding: 20px 22px;
+    border-radius: var(--yuvarlak-buyuk);
+    background: var(--yuzey);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, .08);
+}
+
+    .panel-kart + .panel-kart {
+        margin-top: 18px;
+    }
+
+    .panel-kart h2 {
+        margin: 0 0 14px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--soluk);
+        letter-spacing: .04em;
+    }
+
+/* ===== Kullanici tablosu ===== */
+.kul-tablo {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+    .kul-tablo th {
+        padding: 0 8px 8px;
+        border-bottom: 1px solid var(--cizgi);
+        color: var(--soluk);
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: .06em;
+        text-align: left;
+    }
+
+    .kul-tablo td {
+        padding: 10px 8px;
+        border-bottom: 1px solid #f0f2f5;
+        vertical-align: middle;
+    }
+
+    .kul-tablo tr:last-child td {
+        border-bottom: none;
+    }
+
+    .kul-tablo form {
+        margin: 0;
+    }
+
+    .kul-tablo .sag {
+        text-align: right;
+        width: 1%;
+        white-space: nowrap;
+    }
+
+.kul-ad {
+    font-weight: 500;
+}
+
+.siz {
+    margin-left: 6px;
+    color: var(--soluk);
+    font-size: 11px;
+    font-weight: 400;
+}
+
+/* Yetki rozetleri: yonetici mor, duzenleme mavi, goruntuleme notr */
+.rozet {
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .02em;
+}
+
+.rozet-yonetici {
+    background: #f3e8f9;
+    color: var(--mor);
+}
+
+.rozet-duzenleme {
+    background: #e7f0ff;
+    color: var(--mavi);
+}
+
+.rozet-goruntuleme {
+    background: var(--notr);
+    color: var(--soluk);
+}
+
+/* ===== Kullanici ekleme formu ===== */
+.kul-ekle {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    align-items: flex-end;
+}
+
+    .kul-ekle .alan {
+        flex: 1 1 150px;
+        margin-bottom: 0;
+    }
+
+    .kul-ekle .dugme {
+        flex: none;
+    }
+
+/* ===== Yetkisiz sayfasi ===== */
+.giris-kart a.dugme {
+    display: inline-block;
+}

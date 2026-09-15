@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using WebMap.Data;
 
@@ -11,9 +12,11 @@ using WebMap.Data;
 namespace WebMap.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260908121955_InitialCreate")]
+    partial class InitialCreate
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -126,34 +129,6 @@ namespace WebMap.Migrations
                     b.ToTable("Konutlar");
                 });
 
-            modelBuilder.Entity("WebMap.Models.Kullanici", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("KullaniciAdi")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("ParolaHash")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Yetki")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("KullaniciAdi")
-                        .IsUnique();
-
-                    b.ToTable("Kullanicilar", (string)null);
-                });
-
             modelBuilder.Entity("WebMap.Models.NetworkElement", b =>
                 {
                     b.Property<Guid>("Id")
@@ -202,6 +177,9 @@ namespace WebMap.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<int>("BosPort")
+                        .HasColumnType("int");
+
                     b.Property<string>("Geometri")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -224,6 +202,9 @@ namespace WebMap.Migrations
             modelBuilder.Entity("WebMap.Models.Kabin", b =>
                 {
                     b.HasBaseType("WebMap.Models.NetworkElement");
+
+                    b.Property<int>("BosPort")
+                        .HasColumnType("int");
 
                     b.Property<int>("KabinKapasitesi")
                         .HasColumnType("int");

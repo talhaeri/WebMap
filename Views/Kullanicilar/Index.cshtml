@@ -1,0 +1,96 @@
+@model List<WebMap.Models.Kullanici>
+@using WebMap.Models
+@{
+    ViewData["Title"] = "Kullanıcılar";
+
+    // Ham yetki degeri ("yonetici") ekranda okunur etikete ve rozet rengine cevriliyor
+    var etiket = new Dictionary<string, string>
+    {
+        [Yetkiler.Yonetici] = "Yönetici",
+        [Yetkiler.Duzenleme] = "Düzenleme",
+        [Yetkiler.Goruntuleme] = "Görüntüleme"
+    };
+}
+
+<link rel="stylesheet" href="~/css/panel.css" asp-append-version="true" />
+
+@* Ust serit haritanin arac cubuguyla ayni beyaz ve ayni golge *@
+<div class="panel-ust">
+    <h1>Kullanıcılar</h1>
+    <a class="dugme" href="/">Haritaya dön</a>
+</div>
+
+<div class="panel-icerik">
+    @if (TempData["Hata"] is string hata)
+    {
+        <p class="uyari uyari-hata">@hata</p>
+    }
+    @if (TempData["Bilgi"] is string bilgi)
+    {
+        <p class="uyari uyari-bilgi">@bilgi</p>
+    }
+
+    <div class="panel-kart">
+        <h2>TANIMLI KULLANICILAR</h2>
+        <table class="kul-tablo">
+            <thead>
+                <tr>
+                    <th>KULLANICI ADI</th>
+                    <th>YETKİ</th>
+                    <th class="sag"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var k in Model)
+                {
+                    <tr>
+                        <td class="kul-ad">
+                            @k.KullaniciAdi
+                            @if (k.KullaniciAdi == User.Identity?.Name)
+                            {
+                                <span class="siz">(siz)</span>
+                            }
+                        </td>
+                        <td>
+                            <span class="rozet rozet-@k.Yetki">
+                                @(etiket.TryGetValue(k.Yetki, out var e) ? e : k.Yetki)
+                            </span>
+                        </td>
+                        <td class="sag">
+                            @* Silme baglanti degil form POST'u: GET olsaydi sayfaya dusen
+                               bir resim etiketi bile kullanici silebilirdi. *@
+                            <form method="post" asp-action="Sil" asp-route-id="@k.Id">
+                                <button type="submit" class="dugme dugme-tehlike">Sil</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="panel-kart">
+        <h2>YENİ KULLANICI</h2>
+        @* Alan adlari giris formundakinden farkli ve autocomplete kapali:
+           aksi halde Chrome buraya yazilani giris ekraninda oneriyor. *@
+        <form method="post" asp-action="Ekle" class="kul-ekle" autocomplete="off">
+            <label class="alan">
+                Kullanıcı adı
+                <input name="yeniKullaniciAdi" maxlength="50" autocomplete="off" required>
+            </label>
+            <label class="alan">
+                Parola
+                <input name="yeniParola" type="password" autocomplete="off" required>
+            </label>
+            <label class="alan">
+                Yetki
+                <select name="yetki" required>
+                    <option value="@Yetkiler.Goruntuleme">Görüntüleme</option>
+                    <option value="@Yetkiler.Duzenleme">Düzenleme</option>
+                    <option value="@Yetkiler.Yonetici">Yönetici</option>
+                </select>
+            </label>
+            <button type="submit" class="dugme dugme-birincil">Ekle</button>
+        </form>
+    </div>
+</div>

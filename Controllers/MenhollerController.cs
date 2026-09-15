@@ -1,35 +1,59 @@
+using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebMap.Data;
 using WebMap.Models;
+using WebMap.Services;
 
 namespace WebMap.Controllers;
 
 [ApiController]
 [Route("api/menholler")]
-public class MenhollerController(AppDbContext db) : ControllerBase
+public class MenhollerController(AppDbContext db, GeometriDenetimi denetim) : ControllerBase
 {
     [HttpGet]
-    public async Task<IActionResult> Listele()
+    public async Task<IActionResult> Listele([FromQuery] Guid projeId)
     {
         var liste = await db.Menholler
+            .Where(m => m.ProjeId == projeId)
             .Select(m => new { m.Id, m.Konum, m.Kod, m.Derinlik })
             .ToListAsync();
         return Ok(liste);
     }
 
-    // Govde: { "konum": "POINT(lon lat)", "kod": "...", "derinlik": 1.5 }
+    // Govde: { "projeId": "<guid>", "konum": "POINT(lon lat)", "kod": "...", "derinlik": 1.5 }
     [HttpPost]
+    [Authorize(Roles = Yetkiler.Duzenleyebilir)]
     public async Task<IActionResult> Ekle([FromBody] MenholEkleDto dto)
     {
-        var menhol = new Menhol { Konum = dto.Konum, Kod = dto.Kod, Derinlik = dto.Derinlik };
+        // Proje siniri + poligon ustune yerlesim kurallari (Services/GeometriDenetimi.cs)
+        var hata = await denetim.Denetle(dto.ProjeId, dto.Konum, "Menhol");
+        if (hata is not null) return BadRequest(hata);
+
+        var menhol = new Menhol { ProjeId = dto.ProjeId, Konum = dto.Konum, Kod = dto.Kod, Derinlik = dto.Derinlik };
         db.Menholler.Add(menhol);
         await db.SaveChangesAsync();
         return Ok(new { menhol.Id, menhol.Konum, menhol.Kod, menhol.Derinlik });
     }
 
-    [HttpDelete("{id:int}")]
-    public async Task<IActionResult> Sil(int id)
+    // Govde: Ekle ile ayni sekil; ProjeId ve Konum degistirilemez (goz ardi edilir).
+    [HttpPut("{id:guid}")]
+    [Authorize(Roles = Yetkiler.Duzenleyebilir)]
+    public async Task<IActionResult> Guncelle(Guid id, [FromBody] MenholEkleDto dto)
+    {
+        var menhol = await db.Menholler.FindAsync(id);
+        if (menhol is null) return NotFound();
+
+        menhol.Kod = dto.Kod;
+        menhol.Derinlik = dto.Derinlik;
+        await db.SaveChangesAsync();
+        return Ok(new { menhol.Id, menhol.Konum, menhol.Kod, menhol.Derinlik });
+    }
+
+    [HttpDelete("{id:guid}")]
+    [Authorize(Roles = Yetkiler.Duzenleyebilir)]
+    public async Task<IActionResult> Sil(Guid id)
     {
         var menhol = await db.Menholler.FindAsync(id);
         if (menhol is null) return NotFound();
@@ -41,4 +65,15 @@ public class MenhollerController(AppDbContext db) : ControllerBase
     }
 }
 
-public record MenholEkleDto(string Konum, string Kod, decimal Derinlik);
+public record MenholEkleDto(
+    Guid ProjeId,
+
+    [Required(ErrorMessage = "Konum zorunlu.")]
+    string Konum,
+
+    [Required(ErrorMessage = "Kod zorunlu.")]
+    [RegularExpression(@"^MNHL-[A-Z0-9]{7}$", ErrorMessage = "Kod 'MNHL-' + 7 buyuk harf/rakam olmali.")]
+    string Kod,
+
+    [Range(0, 100, ErrorMessage = "Derinlik 0-100 m arasi olmali.")]
+    decimal Derinlik);

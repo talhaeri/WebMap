@@ -1,0 +1,30 @@
+@{
+    ViewData["Title"] = "Giriş";
+}
+
+<link rel="stylesheet" href="~/css/panel.css" asp-append-version="true" />
+
+<div class="giris-kabuk">
+    @* asp-action kullanildigi icin sahtecilik onleme jetonu forma kendiliginden ekleniyor *@
+    <form class="giris-kart" method="post" asp-action="Giris">
+        <p class="giris-alt">Devam etmek için giriş yapın</p>
+
+        @if (ViewData["Hata"] is string hata)
+        {
+            <p class="uyari uyari-hata">@hata</p>
+        }
+
+        <label class="alan">
+            Kullanıcı adı
+            <input name="kullaniciAdi" autocomplete="username" maxlength="50" required autofocus>
+        </label>
+
+        <label class="alan">
+            Parola
+            <input name="parola" type="password" autocomplete="current-password" required>
+        </label>
+
+        <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
+        <button type="submit" class="dugme dugme-birincil">Giriş yap</button>
+    </form>
+</div>
