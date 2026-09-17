@@ -10,7 +10,7 @@ namespace WebMap.Controllers;
 
 [ApiController]
 [Route("api/menholler")]
-public class MenhollerController(AppDbContext db, GeometriDenetimi denetim) : ControllerBase
+public class MenhollerController(AppDbContext db, GeometriDenetimi denetim, KodDenetimi kodDenetimi) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> Listele([FromQuery] Guid projeId)
@@ -31,6 +31,10 @@ public class MenhollerController(AppDbContext db, GeometriDenetimi denetim) : Co
         var hata = await denetim.Denetle(dto.ProjeId, dto.Konum, "Menhol");
         if (hata is not null) return BadRequest(hata);
 
+        // Kod butun projelerde tek olmali (Services/KodDenetimi.cs)
+        var kodHatasi = await kodDenetimi.Denetle("Menhol", dto.Kod);
+        if (kodHatasi is not null) return BadRequest(kodHatasi);
+
         var menhol = new Menhol { ProjeId = dto.ProjeId, Konum = dto.Konum, Kod = dto.Kod, Derinlik = dto.Derinlik };
         db.Menholler.Add(menhol);
         await db.SaveChangesAsync();
@@ -44,6 +48,10 @@ public class MenhollerController(AppDbContext db, GeometriDenetimi denetim) : Co
     {
         var menhol = await db.Menholler.FindAsync(id);
         if (menhol is null) return NotFound();
+
+        // Kod butun projelerde tek olmali (Services/KodDenetimi.cs)
+        var kodHatasi = await kodDenetimi.Denetle("Menhol", dto.Kod, id);
+        if (kodHatasi is not null) return BadRequest(kodHatasi);
 
         menhol.Kod = dto.Kod;
         menhol.Derinlik = dto.Derinlik;

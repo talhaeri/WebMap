@@ -1,7 +1,7 @@
 namespace WebMap.Models
 {
     // Konut amacli bina (poligon). Tek poligon tipi kaldigi icin ayri bir taban sinif yok.
-    public class Konut
+    public class Konut : IProjeyeAit
     {
         public Guid Id { get; set; }
 

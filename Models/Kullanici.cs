@@ -12,12 +12,9 @@
     {
         public const string Goruntuleme = "goruntuleme";
         public const string Duzenleme = "duzenleme";
-        // Kullanici yonetimi icin ucuncu yetki: yoksa kullanicilar sayfasina
-        // kimin girebilecegini soyleyemeyiz.
         public const string Yonetici = "yonetici";
-
-        // [Authorize(Roles = ...)] derleme zamani sabit ister;
-        // sabitlerin birlesimi de sabittir.
+        public const string Onaylayici = "onaylayici";
         public const string Duzenleyebilir = Yonetici + "," + Duzenleme;
+        public static readonly string[] TumYetkiler = [Yonetici, Duzenleme, Onaylayici, Goruntuleme];
     }
 }

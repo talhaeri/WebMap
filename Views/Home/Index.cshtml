@@ -1,5 +1,8 @@
 ﻿@{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "Harita";
+    // Proje olusturma yetkisi sayfa acilirken bir kez hesaplanir; kural Services/ProjeKurallari.cs'te.
+    var rol = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+    var projeOlusturabilir = WebMap.Services.ProjeKurallari.ProjeOlusturabilir(rol);
 }
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -23,6 +26,9 @@
                 <path d="M4 4h12M4 8h12M4 12h8M4 16h10" fill="none" stroke="#333" stroke-width="2" stroke-linecap="round" />
             </svg>
         </button>
+
+        @* Durum rozeti + izin verilen islem butonlari. Icerigi map.js (seritGuncelle) kurar. *@
+        <div id="durum-seridi" class="durum-seridi" hidden></div>
 
         <span class="toolbar-ayrac"></span>
 
@@ -60,7 +66,8 @@
         </form>
     </div>
 
-    <div id="map" data-yetki="@User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value"></div>
+    @* Razor bool degerini True/False basar; JS'teki === 'true' karsilastirmasi icin kucuk harf. *@
+    <div id="map" data-proje-olusturabilir="@(projeOlusturabilir ? "true" : "false")"></div>
 </div>
 
 @section Scripts {

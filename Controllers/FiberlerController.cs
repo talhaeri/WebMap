@@ -29,6 +29,10 @@ public class FiberlerController(AppDbContext db, GeometriDenetimi denetim, PortD
     [Authorize(Roles = Yetkiler.Duzenleyebilir)]
     public async Task<IActionResult> Ekle([FromBody] FiberEkleDto dto)
     {
+        // Ayni nesnede baslayip biten fiber anlamsiz; ustelik o nesneden iki port duser (bos port eksiye inebilir).
+        if (dto.BaslangicId == dto.BitisId)
+            return BadRequest("Fiber başlangıcı ve bitişi aynı nesne olamaz.");
+
         // Proje siniri + poligon ustune yerlesim kurallari (Services/GeometriDenetimi.cs)
         var hata = await denetim.Denetle(dto.ProjeId, dto.Guzergah, "Fiber");
         if (hata is not null) return BadRequest(hata);

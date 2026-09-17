@@ -9,10 +9,12 @@ L.tileLayer('http://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
 }).addTo(map);
 
 // ===== Yetki =====
-// Sunucudan gelen yetki (Views/Home/Index.cshtml icindeki data-yetki).
-// Bu SADECE arayuzu kisitlar; gercek engel sunucuda ([Authorize] oznitelikleri).
-const duzenleyebilir = ['yonetici', 'duzenleme']
-    .includes(document.getElementById('map').dataset.yetki);
+// Kurallar sunucuda (Services/ProjeKurallari.cs). Arayuz sadece sunucunun soylediklerini uygular:
+//   proje olusturma          -> sayfa acilirken gelen data-proje-olusturabilir
+//   proje icindeki her islem -> GET /api/projeler/{id} yanitindaki izinler
+// Bu SADECE arayuzu kisitlar; gercek engel sunucuda.
+const projeOlusturabilir = document.getElementById('map').dataset.projeOlusturabilir === 'true';
+const nesneDuzenleyebilir = () => !!aktifProje?.izinler?.nesneDuzenleyebilir;
 
 const katmanlar = L.layerGroup().addTo(map);
 
@@ -136,6 +138,15 @@ const API = {
     Konut: '/api/konutlar', Fiber: '/api/fiberler'
 };
 
+// Proje durumu ve islem adlari -> ekranda gorunen metin
+const DURUM_ETIKET = { Planlama: 'Planlama', OnayBekliyor: 'Onay bekliyor', Onaylandi: 'Onaylandı' };
+const ISLEM_ETIKET = {
+    OnayaGonder: 'Onaya gönder', GeriCek: 'Geri çek', Onayla: 'Onayla', Reddet: 'Reddet',
+    PlanlamayaAl: 'Planlamaya al', Olustur: 'Oluşturuldu', Degistir: 'Değişiklik', Sil: 'Silindi'
+};
+// Gerekce sorulacak islemler. Sadece hangi pencerenin acilacagini belirler; kurali sunucu uygular.
+const NOT_GEREKEN = ['Reddet', 'PlanlamayaAl'];
+
 const IKON = {
     Menhol: L.divIcon({ className: 'ikon ikon-menhol', iconSize: [16, 16] }),
     Kabin: L.divIcon({ className: 'ikon ikon-kabin', iconSize: [16, 16] }),
@@ -207,12 +218,12 @@ const FORMLAR = {
         <label>BBK Sayisi<br><input name="bbKsayi" type="number" min="0" max="100000" value="1" required></label><br>
         <button type="button" data-kaydet>Kaydet</button>`,
     Proje: `
-        <label>Proje Adi<br><input name="ad" maxlength="100" required></label><br>
+        <label>Proje Adi<br><input name="projeAdi" maxlength="100" required></label><br>
         <button type="button" data-kaydet>Kaydet</button>`,
 };
 
 // ===== Proje durumu =====
-let aktifProje = null;     // { id, ad, geometri } - su an uzerinde calisilan proje
+let aktifProje = null;     // GET /api/projeler/{id} yaniti: { id, projeAdi, geometri, durum, redNotu, izinler, ... }
 let projeKatmani = null;   // proje sinirini gosteren, tiklanamaz/silinemez katman
 let projeGj = null;        // ayni sinir, GeoJSON: icerik testleri bunun uzerinden
 
@@ -223,7 +234,7 @@ let aktifArac = null;      // 'Proje' | 'Menhol' | 'Kabin' | 'Santral' | 'Konut'
 // ===== Proje secilmeden nesne araclari kilitli kalir =====
 function araclariAc(ac) {
     document.querySelectorAll('[data-tur]:not([data-tur="Proje"])')
-        .forEach(b => b.disabled = !ac || !duzenleyebilir);
+        .forEach(b => b.disabled = !ac || !nesneDuzenleyebilir());
 }
 
 // ===== Arac secimi: onceki cizimi kapat, yenisini ac, vurguyu tasi =====
@@ -253,7 +264,8 @@ function sunucuHatasi(metin) {
 // ===== Tek HTTP giris noktasi =====
 // Sadece tasima isi: istegi at, hatayi bildir, govdeyi coz.
 // Ne yapilacagina cagri yeri karar verir. Hata -> null ; govdesiz basarili yanit -> true.
-async function istek(url, metot = 'GET', govde) {
+//   sessiz: hata bildirimi gosterme (sonucu cagiran yer kendisi yorumlar)
+async function istek(url, metot = 'GET', govde, { sessiz = false } = {}) {
     const r = await fetch(url, {
         method: metot,
         headers: govde ? { 'Content-Type': 'application/json' } : undefined,
@@ -263,7 +275,12 @@ async function istek(url, metot = 'GET', govde) {
     if (r.status === 401) { location.href = '/Hesap/Giris'; return null; }
 
     const metin = await r.text();
-    if (!r.ok) { sunucuHatasi(metin); return null; }
+    if (!r.ok) {
+        if (!sessiz) sunucuHatasi(metin);
+        // 409: proje baska bir oturumda kilitlendi (onaya gonderildi / onaylandi). Ekrani sunucuyla esitle.
+        if (r.status === 409 && aktifProje) aktifProjeyiTazele();
+        return null;
+    }
     return metin ? JSON.parse(metin) : true;   // DELETE govdesiz 200 doner
 }
 
@@ -320,7 +337,7 @@ function popupIcerik(tur, kayit, katman) {
         kutu.append(satir);
     }
 
-    if (!duzenleyebilir) return kutu;          // goruntuleme yetkisi: sadece bilgi
+    if (!nesneDuzenleyebilir()) return kutu;   // kilitli proje ya da yetki yok: sadece bilgi
 
     const butonlar = document.createElement('div');
     butonlar.className = 'popup-butonlar';
@@ -415,17 +432,25 @@ function formPopupAc(tur, latlng, { ekVeri, kayit, sonra, tipler } = {}) {
 
     L.popup().setLatLng(latlng).setContent(form).openOn(map);
 
-    form.querySelector('[data-kaydet]').onclick = async () => {
+    const kaydetBtn = form.querySelector('[data-kaydet]');
+    kaydetBtn.onclick = async () => {
         if (!form.reportValidity()) return;                     // native HTML5 dogrulama
         const veri = Object.fromEntries(new FormData(form));    // { veriDeger: "...", derinlik: "1.5", ... }
         if (veri.veriDeger != null) {                            // sabit onek + kullanicinin girdigi deger
             veri.kod = (KOD_ONEK[tur] || '') + veri.veriDeger;
             delete veri.veriDeger;
         }
-        const yeni = kayit
-            ? await guncelle(tur, kayit, veri)
-            : await kaydet(tur, Object.assign(veri, ekVeri));
-        if (yeni) sonra?.(yeni);
+        // Istek surerken buton kapali: cift tiklama ayni kaydi iki kez olusturmasin
+        // (sakarya'daki iki SNTR-5454545 santrali buyuk ihtimalle boyle olustu).
+        kaydetBtn.disabled = true;
+        try {
+            const yeni = kayit
+                ? await guncelle(tur, kayit, veri)
+                : await kaydet(tur, Object.assign(veri, ekVeri));
+            if (yeni) sonra?.(yeni);
+        } finally {
+            kaydetBtn.disabled = false;   // hata olduysa kullanici duzeltip tekrar deneyebilsin
+        }
     };
 }
 
@@ -446,13 +471,15 @@ function projeYukle(proje) {
     map.fitBounds(projeKatmani.getBounds());
 
     araclariAc(true);
+    seritGuncelle();
     document.getElementById('proje-rapor-btn').disabled = false;
     document.getElementById('proje-kapat-btn').disabled = false;
     yukle();
-    bildirGoster(`"${proje.ad}" projesi acik.`, 'basari');
+    bildirGoster(`"${proje.projeAdi}" projesi acik.`, 'basari');
 }
 
-function projeKapat() {
+// sessiz: baska bir akisin parcasiyken (proje silindi / gorunmez oldu) ayrica "kapatildi" bildirimi cikmasin
+function projeKapat(sessiz = false) {
     aktifProje = null;
     katmanlar.clearLayers();
     merkezler.clearLayers();
@@ -464,12 +491,114 @@ function projeKapat() {
     document.getElementById('proje-sec').value = '';
     document.getElementById('proje-kapat-btn').disabled = true;
     document.getElementById('proje-rapor-btn').disabled = true;
-    bildirGoster('Proje kapatildi.', 'bilgi');
+    seritGuncelle();
+    if (!sessiz) bildirGoster('Proje kapatildi.', 'bilgi');
 }
-document.getElementById('proje-kapat-btn').onclick = projeKapat;
+// Ok fonksiyonu sart: onclick olay nesnesini ilk parametre olarak verir, o da sessiz = true sayilirdi
+document.getElementById('proje-kapat-btn').onclick = () => projeKapat();
+
+// ===== Acik projeyi sunucuyla esitle =====
+// Durum baska bir oturumda degismis olabilir. Cagrildigi yerler: durum islemlerinden sonra,
+// 409 alininca, sekmeye geri donulunce.
+async function aktifProjeyiTazele() {
+    if (!aktifProje) return;
+    const { id, durum: eskiDurum } = aktifProje;
+    const proje = await istek(`${API.Proje}/${id}`, 'GET', undefined, { sessiz: true });
+    if (aktifProje?.id !== id) return;   // beklerken proje kapatildi ya da baska proje acildi
+
+    if (!proje) {   // artik gorunmuyor: orn. goruntuleyici acikken proje Planlama'ya alindi
+        projeKapat(true);
+        bildirGoster('Bu proje artık görüntülenemiyor.', 'bilgi');
+        return projeListesi();
+    }
+
+    aktifProje = proje;
+    araclariAc(true);
+    seritGuncelle();
+    if (proje.durum !== eskiDurum) {
+        aracSec(null);       // yarim cizim varsa iptal: artik izni olmayabilir
+        map.closePopup();    // acik popup eski izinlerle kurulmustu
+        projeListesi();      // listedeki durum etiketi de eskidi
+        await yenile();      // durum degistiyse icerik de degismis olabilir
+    }
+}
+
+// Sekmeye geri donulunce liste ve acik proje guncellensin
+document.addEventListener('visibilitychange', async () => {
+    if (document.visibilityState !== 'visible') return;
+    await aktifProjeyiTazele();
+    projeListesi();
+});
+
+// ===== Durum seridi: rozet + izin verilen islemler + gecmis + (yoneticiye) projeyi sil =====
+function dugme(metin, onclick, sinif = '') {
+    return Object.assign(document.createElement('button'), {
+        type: 'button', className: `durum-btn ${sinif}`, textContent: metin, onclick
+    });
+}
+
+function seritGuncelle() {
+    const serit = document.getElementById('durum-seridi');
+    serit.hidden = !aktifProje;
+    if (!aktifProje) return serit.replaceChildren();
+
+    const { durum, redNotu, izinler } = aktifProje;
+    const rozet = Object.assign(document.createElement('span'), {
+        className: `durum-rozet durum-${durum}`,
+        textContent: DURUM_ETIKET[durum] ?? durum
+    });
+    if (durum === 'Planlama' && redNotu) {
+        rozet.textContent += ' · reddedildi';
+        rozet.title = `Red notu: ${redNotu}`;   // title duz metindir, XSS yok
+    }
+
+    // Butonlar sunucunun izin verdigi islemlerden uretilir: JS hicbir kurali bilmez.
+    serit.replaceChildren(
+        rozet,
+        ...izinler.islemler.map(i => dugme(ISLEM_ETIKET[i] ?? i, () => islemYap(i), `islem-${i}`)),
+        dugme('Geçmiş', projeGecmisi),
+        ...(izinler.silebilir ? [dugme('Projeyi sil', projeSil, 'tehlike')] : []));
+}
+
+// Notiflix'in hazir prompt penceresi. Vazgecilirse null.
+function notIste(baslik) {
+    return new Promise(resolve => Notiflix.Confirm.prompt(
+        baslik, 'Gerekçe yazın:', '', 'Tamam', 'Vazgeç',
+        cevap => resolve(cevap),
+        () => resolve(null)));
+}
+
+// Durum islemi: gerekce isteyen islemde not penceresi, digerlerinde evet/hayir onayi.
+async function islemYap(islem) {
+    const etiket = ISLEM_ETIKET[islem] ?? islem;
+    let not = null;
+
+    if (NOT_GEREKEN.includes(islem)) {
+        not = (await notIste(etiket))?.trim();
+        if (!not) return bildirGoster('Gerekçe yazılmadığı için işlem yapılmadı.', 'bilgi');
+    } else if (!await onayIste(`"${aktifProje.projeAdi}": ${etiket}?`, { onayMetni: etiket, baslik: etiket })) {
+        return;
+    }
+
+    const sonuc = await istek(`${API.Proje}/${aktifProje.id}/islem`, 'POST', { islem, not });
+    // Basarili da olsa hatali da olsa esitle: hata sebebi durumun baska oturumda degismesi olabilir.
+    // Durum degistiyse liste de orada yenilenir.
+    await aktifProjeyiTazele();
+    if (sonuc) bildirGoster(`${etiket}: tamamlandı.`, 'basari');
+}
+
+async function projeSil() {
+    const ad = aktifProje.projeAdi;
+    if (!await onayIste(`"${ad}" projesi ve içindeki bütün nesneler silinecek.`, { baslik: 'Projeyi sil' })) return;
+    if (await istek(`${API.Proje}/${aktifProje.id}`, 'DELETE') === null) return;
+    projeKapat(true);
+    await projeListesi();
+    bildirGoster(`"${ad}" silindi.`, 'basari');
+}
 
 // ===== Maliyet raporu (Grid.js tablo + native <dialog>) =====
 const TL = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' });
+const TARIH = new Intl.DateTimeFormat('tr-TR', { dateStyle: 'short', timeStyle: 'short' });
 
 async function projeRapor() {
     if (!aktifProje) return;
@@ -478,55 +607,83 @@ async function projeRapor() {
 }
 document.getElementById('proje-rapor-btn').onclick = projeRapor;
 
-// rapor: MaliyetSonucu { kalemler[], iscilikGenelToplam, malzemeGenelToplam, genelToplam }
-function projeRaporGoster(rapor) {
-    const para = { formatter: TL.format };
+// Grid.js tablosu iceren native <dialog>. Maliyet raporu ve gecmis ayni kabugu kullanir.
+function tabloDialogu(baslik, gridAyari) {
     const dlg = document.createElement('dialog');
     dlg.className = 'rapor-dialog';
     const kapat = () => { dlg.close(); dlg.remove(); };
     dlg.addEventListener('cancel', kapat);
     dlg.addEventListener('close', kapat);
 
-    const baslik = Object.assign(document.createElement('h3'), {
-        textContent: `"${aktifProje.ad}" — Maliyet Raporu`
-    });
     const tablo = document.createElement('div');
-    const kapatBtn = Object.assign(document.createElement('button'), {
-        textContent: 'Kapat', onclick: kapat
-    });
-    dlg.append(baslik, tablo, kapatBtn);
+    dlg.append(
+        Object.assign(document.createElement('h3'), { textContent: baslik }),
+        tablo,
+        Object.assign(document.createElement('button'), { textContent: 'Kapat', onclick: kapat }));
 
+    new gridjs.Grid({ language: { noRecordsFound: 'Kayıt yok' }, ...gridAyari }).render(tablo);
+    document.body.appendChild(dlg);
+    dlg.showModal();
+}
+
+// rapor: { kaynak, onaylayanAdi, onayTarihi, kalemler[], iscilikGenelToplam, malzemeGenelToplam, genelToplam }
+function projeRaporGoster(rapor) {
+    const para = { formatter: TL.format };
     const miktar = k =>
         (k.iscilikOlcusu === k.malzemeOlcusu && k.iscilikOlcusu !== 'adet')
             ? `${k.iscilikCarpani} ${k.iscilikOlcusu}`
             : `${k.adet} adet`;
 
-    new gridjs.Grid({
+    // Onayli projede rapor onay anindaki kopyadan gelir: birim fiyatlar sonradan degisse de ayni kalir.
+    const kaynak = rapor.kaynak === 'onay'
+        ? ` (onay anı: ${rapor.onaylayanAdi}, ${TARIH.format(new Date(rapor.onayTarihi))})`
+        : '';
+
+    tabloDialogu(`"${aktifProje.projeAdi}" — Maliyet Raporu${kaynak}`, {
         columns: ['Nesne', 'Miktar',
             { name: 'İşçilik', ...para }, { name: 'Malzeme', ...para }, { name: 'Toplam', ...para }],
         data: [
             ...rapor.kalemler.map(k => [k.nesneTuru, miktar(k), k.iscilikToplam, k.malzemeToplam, k.toplam]),
             ['GENEL', '', rapor.iscilikGenelToplam, rapor.malzemeGenelToplam, rapor.genelToplam]
         ]
-    }).render(tablo);
+    });
+}
 
-    document.body.appendChild(dlg);
-    dlg.showModal();
+// Gecmis penceresi. Tarihler sunucudan UTC ("...Z") gelir; Intl yerel saate cevirir.
+async function projeGecmisi() {
+    const liste = await istek(`${API.Proje}/${aktifProje.id}/gecmis`);
+    if (!liste) return;
+    tabloDialogu(`"${aktifProje.projeAdi}" — Geçmiş`, {
+        columns: ['Tarih', 'İşlem', 'Kullanıcı', 'Not'],
+        data: liste.map(g => [TARIH.format(new Date(g.tarih)), ISLEM_ETIKET[g.islem] ?? g.islem, g.kullaniciAdi, g.not ?? '']),
+        fixedHeader: true,
+        height: '360px'
+    });
 }
 
 // ===== Proje secici (toolbar'daki dropdown) =====
-async function projeSec() {
+// Listeyi sunucudan yeniden kurar; acik proje secili kalir. Onay bekleyenler sunucudan en ustte gelir.
+async function projeListesi() {
     const sec = document.getElementById('proje-sec');
     const liste = await istek(API.Proje) ?? [];
     // new Option: proje adi kullanici girdisi, innerHTML ile basilmaz (XSS)
-    sec.replaceChildren(new Option(' Proje secin ', ''),
-        ...liste.map(p => new Option(p.ad, p.id)));
-    sec.onchange = () => {
-        const secili = liste.find(p => p.id === sec.value);
-        if (secili) projeYukle(secili);
-    };
+    sec.replaceChildren(
+        new Option(liste.length ? ' Proje secin ' : ' Proje yok ', ''),
+        ...liste.map(p => new Option(`${p.projeAdi} · ${DURUM_ETIKET[p.durum] ?? p.durum}`, p.id)));
+    sec.value = aktifProje?.id ?? '';
 }
-projeSec();
+
+// Proje her acilista sunucudan TAZE okunur: sayfa acildiktan sonra durumu degismis olabilir.
+async function projeAc(id) {
+    const proje = await istek(`${API.Proje}/${id}`);
+    if (!proje) return projeListesi();          // bu arada gorunmez olmus ya da silinmis
+    projeYukle(proje);
+    if (proje.durum === 'Planlama' && proje.redNotu)
+        Notiflix.Report.warning('Proje reddedildi', proje.redNotu, 'Tamam', { messageMaxLength: 500 });
+}
+
+document.getElementById('proje-sec').onchange = (e) => { if (e.target.value) projeAc(e.target.value); };
+projeListesi();
 
 // ===== Aktif projenin kayitli nesnelerini yukle =====
 const TURLER = ['Menhol', 'Kabin', 'Santral', 'Konut', 'Fiber'];
@@ -568,7 +725,7 @@ document.querySelectorAll('[data-tur]').forEach(b => {
 });
 
 // Proje cizme butonu proje secilmeden de acik; yetkisi olmayana yine de kapali.
-if (!duzenleyebilir) document.querySelector('[data-tur="Proje"]').disabled = true;
+if (!projeOlusturabilir) document.querySelector('[data-tur="Proje"]').disabled = true;
 
 // Esc -> aktif cizimi iptal et
 document.addEventListener('keydown', (e) => {
@@ -592,9 +749,8 @@ map.on('pm:create', (e) => {
         formPopupAc('Proje', merkez, {
             ekVeri: { geometri: gjToWkt(gj) },
             sonra: async (proje) => {
-                await projeSec();
-                document.getElementById('proje-sec').value = proje.id;
-                projeYukle(proje);
+                await projeAc(proje.id);      // POST yaniti izinleri icermez; detay sunucudan okunur
+                await projeListesi();
             }
         });
         return;
@@ -631,6 +787,8 @@ async function fiberKaydet(gj) {
         return bildirGoster('Fiber baslangici bir menhol, kabin veya santral uzerinde olmali.', 'hata');
     if (!bit || bit.tur === 'Fiber')
         return bildirGoster('Fiber bitisi bir nesne veya konut olmali.', 'hata');
+    if (bas.kayit.id === bit.kayit.id)
+        return bildirGoster('Fiber başlangıcı ve bitişi aynı nesne olamaz.', 'hata');
 
     // Bos port on kontrolu: sunucu da bakiyor, bu sadece anlik geri bildirim.
     const dolu = [bas, bit].find(u =>

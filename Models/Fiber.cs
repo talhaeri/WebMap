@@ -4,7 +4,7 @@ namespace WebMap.Models
     // FK constraint YOK - sunucu tarafinda kontrol edilir (bkz. FiberlerController).
     //   Baslangic: mutlaka bir Menhol, Kabin veya Santral.
     //   Bitis: bir NetworkElement (Menhol/Kabin), bir Konut ya da bir Santral.
-    public class Fiber
+    public class Fiber : IProjeyeAit
     {
         public Guid Id { get; set; }
 

@@ -10,7 +10,7 @@ namespace WebMap.Controllers;
 
 [ApiController]
 [Route("api/santraller")]
-public class SantrallerController(AppDbContext db, GeometriDenetimi denetim, PortDenetimi port) : ControllerBase
+public class SantrallerController(AppDbContext db, GeometriDenetimi denetim, PortDenetimi port, KodDenetimi kodDenetimi) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> Listele([FromQuery] Guid projeId)
@@ -32,6 +32,10 @@ public class SantrallerController(AppDbContext db, GeometriDenetimi denetim, Por
         var hata = await denetim.Denetle(dto.ProjeId, dto.Geometri, "Santral");
         if (hata is not null) return BadRequest(hata);
 
+        // Kod butun projelerde tek olmali (Services/KodDenetimi.cs)
+        var kodHatasi = await kodDenetimi.Denetle("Santral", dto.Kod);
+        if (kodHatasi is not null) return BadRequest(kodHatasi);
+
         var santral = new Santral
         {
             ProjeId = dto.ProjeId,
@@ -52,6 +56,10 @@ public class SantrallerController(AppDbContext db, GeometriDenetimi denetim, Por
     {
         var santral = await db.Santraller.FindAsync(id);
         if (santral is null) return NotFound();
+
+        // Kod butun projelerde tek olmali (Services/KodDenetimi.cs)
+        var kodHatasi = await kodDenetimi.Denetle("Santral", dto.Kod, id);
+        if (kodHatasi is not null) return BadRequest(kodHatasi);
 
         // Kapasite bagli fiber sayisinin altina indirilemez (bos port eksiye duserdi)
         var kullanilan = await port.FiberSayisi(id);

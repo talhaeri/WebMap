@@ -10,7 +10,7 @@ namespace WebMap.Controllers;
 
 [ApiController]
 [Route("api/kabinler")]
-public class KabinlerController(AppDbContext db, GeometriDenetimi denetim, PortDenetimi port) : ControllerBase
+public class KabinlerController(AppDbContext db, GeometriDenetimi denetim, PortDenetimi port, KodDenetimi kodDenetimi) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> Listele([FromQuery] Guid projeId)
@@ -32,6 +32,10 @@ public class KabinlerController(AppDbContext db, GeometriDenetimi denetim, PortD
         var hata = await denetim.Denetle(dto.ProjeId, dto.Konum, "Kabin", dto.KabinTipi);
         if (hata is not null) return BadRequest(hata);
 
+        // Kod butun projelerde tek olmali (Services/KodDenetimi.cs)
+        var kodHatasi = await kodDenetimi.Denetle("Kabin", dto.Kod);
+        if (kodHatasi is not null) return BadRequest(kodHatasi);
+
         var kabin = new Kabin
         {
             ProjeId = dto.ProjeId,
@@ -52,6 +56,10 @@ public class KabinlerController(AppDbContext db, GeometriDenetimi denetim, PortD
     {
         var kabin = await db.Kabinler.FindAsync(id);
         if (kabin is null) return NotFound();
+
+        // Kod butun projelerde tek olmali (Services/KodDenetimi.cs)
+        var kodHatasi = await kodDenetimi.Denetle("Kabin", dto.Kod, id);
+        if (kodHatasi is not null) return BadRequest(kodHatasi);
 
         // Kapasite bagli fiber sayisinin altina indirilemez (bos port eksiye duserdi)
         var kullanilan = await port.FiberSayisi(id);

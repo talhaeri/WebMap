@@ -2,7 +2,7 @@ namespace WebMap.Models
 {
     // Santral: alan (poligon), Konut gibi bagimsiz. NetworkElement DEGIL.
     // Sinir geometrisi WKT metni olarak tutulur. Ornek: "POLYGON((32.86 39.95, ...))".
-    public class Santral
+    public class Santral : IProjeyeAit
     {
         public Guid Id { get; set; }
 

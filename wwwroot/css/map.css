@@ -96,9 +96,49 @@ a.toolbar-btn {
     border-radius: 6px;
     background: #fff;
     font: 13px/1 system-ui, -apple-system, "Segoe UI", sans-serif;
-    max-width: 180px;
+    max-width: 260px;   /* ada durum etiketi de ekleniyor: "datatest · Onay bekliyor" */
     cursor: pointer;
 }
+
+/* Durum seridi: rozet + islem butonlari (toolbar icinde) */
+.durum-seridi {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+    /* display:flex, hidden ozniteligini ezer; gizlenebilmesi icin acikca yazilmali */
+    .durum-seridi[hidden] {
+        display: none;
+    }
+
+.durum-rozet {
+    padding: 4px 10px;
+    border-radius: 999px;
+    font: 600 12px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
+    white-space: nowrap;
+    cursor: default;
+}
+
+.durum-Planlama { background: #e9ecef; color: #495057; }
+.durum-OnayBekliyor { background: #fff3cd; color: #8a6100; }
+.durum-Onaylandi { background: #d1e7dd; color: #0f5132; }
+
+.durum-btn {
+    height: 32px;
+    padding: 0 10px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background: #fff;
+    font: 13px/1 system-ui, -apple-system, "Segoe UI", sans-serif;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+    .durum-btn:hover { background: #f1f1f1; }
+    .durum-btn.islem-Onayla { background: #198754; border-color: #198754; color: #fff; }
+    .durum-btn.islem-Reddet,
+    .durum-btn.tehlike { border-color: #e74c3c; color: #e74c3c; }
 
 /* Menhol = daire, Kabin = kare ikon (Leaflet divIcon) */
 .ikon {

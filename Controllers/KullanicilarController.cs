@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebMap.Data;
 using WebMap.Models;
+using static WebMap.Models.ProjeSabitler;
 
 namespace WebMap.Controllers
 {
@@ -22,7 +23,7 @@ namespace WebMap.Controllers
                 TempData["Hata"] = "Kullanici adi ve parola zorunlu.";
             else if (await db.Kullanicilar.AnyAsync(k => k.KullaniciAdi == yeniKullaniciAdi))
                 TempData["Hata"] = "Bu kullanici adi zaten var.";
-            else if (yetki != Yetkiler.Yonetici && yetki != Yetkiler.Duzenleme && yetki != Yetkiler.Goruntuleme)
+            else if (!Yetkiler.TumYetkiler.Contains(yetki))
                 TempData["Hata"] = "Gecersiz yetki.";
             else
             {
@@ -49,6 +50,17 @@ namespace WebMap.Controllers
             {
                 TempData["Hata"] = "Son yonetici silinemez.";
                 return RedirectToAction(nameof(Index));
+            }
+            if (kullanici.Yetki == Yetkiler.Onaylayici && await db.Kullanicilar.CountAsync(k => k.Yetki == Yetkiler.Onaylayici) == 1)
+            {
+                // Filtre atlanir: kural sayfayi kimin actigina degil projelerin gercek durumuna bakmali.
+                var bekleyen = await db.Projeler.IgnoreQueryFilters()
+                    .CountAsync(p => p.Durum == ProjeDurumlari.OnayBekliyor);
+                if (bekleyen > 0)
+                {
+                    TempData["Hata"] = $"{bekleyen} proje onay bekliyor; son onaylayıcı silinemez. Önce yeni bir onaylayıcı ekleyin.";
+                    return RedirectToAction(nameof(Index));
+                }
             }
 
             db.Kullanicilar.Remove(kullanici);

@@ -10,8 +10,7 @@ using WebMap.Models;
 
 namespace WebMap.Controllers
 {
-    // Program.cs'teki FallbackPolicy her seyi kapatiyor; giris sayfasinin
-    // acik kalmasi icin bu controller acikca [AllowAnonymous].
+    // Program.cs'teki FallbackPolicy her seyi kapatiyor; giris sayfasinin acik kalmasi icin bu controller acikca [AllowAnonymous].
     [AllowAnonymous]
     public class HesapController(AppDbContext db, IPasswordHasher<Kullanici> hasher) : Controller
     {
@@ -33,8 +32,7 @@ namespace WebMap.Controllers
                 hasher.VerifyHashedPassword(kullanici, kullanici.ParolaHash, parola)
                     != PasswordVerificationResult.Failed;
 
-            // Kullanici yoksa da parola yanlissa da AYNI mesaj:
-            // hangi kullanici adinin var oldugu disariya sizmasin.
+            // Kullanici yoksa da parola yanlissa da AYNI mesaj: hangi kullanici adinin var oldugu disariya sizmasin.
             if (!gecerli)
             {
                 ViewData["Hata"] = "Kullanici adi veya parola hatali.";

@@ -8,6 +8,7 @@
     --kirmizi: #e74c3c;
     --kirmizi-koyu: #d84332;
     --mor: #9b59b6;
+    --yesil: #1bbf23;
 
     --yuzey: #fff;
     --zemin: #eef1f5;
@@ -263,6 +264,10 @@ body {
 .rozet-goruntuleme {
     background: var(--notr);
     color: var(--soluk);
+}
+.rozet-onaylayici {
+    background: #e8f5ec;
+    color: var(--yesil);
 }
 
 /* ===== Kullanici ekleme formu ===== */
