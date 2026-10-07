@@ -2,7 +2,6 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Identity.Client;
 using WebMap.Data;
 using WebMap.Models;
 using WebMap.Services;
@@ -23,36 +22,26 @@ public class FiberlerController(AppDbContext db, GeometriDenetimi denetim, PortD
         return Ok(liste);
     }
 
-    // Govde: { "projeId": "<guid>", "guzergah": "LINESTRING(...)", "baslangicId": "<guid>", "bitisId": "<guid>" }
-    // Kural: baslangic bir Menhol/Kabin/Santral olmali; bitis bir NetworkElement, Konut ya da Santral olmali.
+    // Gövde: { "projeId": "<guid>", "guzergah": "LINESTRING(...)", "baslangicId": "<guid>", "bitisId": "<guid>" }
+    // Başlangıç menhol, kabin ya da santral olmalı; bitiş bunlardan biri ya da konut olmalı.
     [HttpPost]
     [Authorize(Roles = Yetkiler.Duzenleyebilir)]
     public async Task<IActionResult> Ekle([FromBody] FiberEkleDto dto)
     {
-        // Ayni nesnede baslayip biten fiber anlamsiz; ustelik o nesneden iki port duser (bos port eksiye inebilir).
+        // Aynı nesnede başlayıp biten fiber anlamsız; üstelik o nesneden iki port düşer
         if (dto.BaslangicId == dto.BitisId)
             return BadRequest("Fiber başlangıcı ve bitişi aynı nesne olamaz.");
 
-        // Proje siniri + poligon ustune yerlesim kurallari (Services/GeometriDenetimi.cs)
-        var hata = await denetim.Denetle(dto.ProjeId, dto.Guzergah, "Fiber");
+        var hata = await denetim.Denetle(dto.ProjeId, dto.Guzergah, "Fiber");   // proje sınırı
         if (hata is not null) return BadRequest(hata);
 
-        // baslangic: Menhol / Kabin (NetworkElement) VEYA Santral (bagimsiz alan)
-        var baslangic = await db.NetworkElements.FindAsync(dto.BaslangicId);
-        var baslangicSantral = await db.Santraller.AnyAsync(s => s.Id == dto.BaslangicId);
-        if (baslangic is not (Menhol or Kabin) && !baslangicSantral)
+        if (!await AgNesnesiMi(dto.BaslangicId))
             return BadRequest("Fiber baslangici bir menhol, kabin veya santral olmali.");
-
-        // bitis: NetworkElement VEYA Konut VEYA Santral
-        var bitisNetworkElement = await db.NetworkElements.AnyAsync(n => n.Id == dto.BitisId);
-        var bitisKonut = await db.Konutlar.AnyAsync(k => k.Id == dto.BitisId);
-        var bitisSantral = await db.Santraller.AnyAsync(s => s.Id == dto.BitisId);
-        if (!bitisNetworkElement && !bitisKonut && !bitisSantral)
+        if (!await AgNesnesiMi(dto.BitisId) && !await db.Konutlar.AnyAsync(k => k.Id == dto.BitisId))
             return BadRequest("Fiber bitisi bir network element, konut ya da santral olmali.");
-        
+
         var portHatasi = await port.Denetle(dto.ProjeId, dto.BaslangicId, dto.BitisId);
-        if (portHatasi is not null) 
-            return BadRequest(portHatasi);
+        if (portHatasi is not null) return BadRequest(portHatasi);
 
         var fiber = new Fiber
         {
@@ -76,6 +65,10 @@ public class FiberlerController(AppDbContext db, GeometriDenetimi denetim, PortD
         await db.SaveChangesAsync();
         return Ok();
     }
+
+    // Menhol ya da kabin (NetworkElement) ya da santral mı
+    async Task<bool> AgNesnesiMi(Guid id) =>
+        await db.NetworkElements.AnyAsync(n => n.Id == id) || await db.Santraller.AnyAsync(s => s.Id == id);
 }
 
 public record FiberEkleDto(

@@ -1,40 +1,33 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using WebMap.Data;
-using WebMap.Models;
 
 namespace WebMap.Services
 {
-    // Bos port hesaplanir: kapasite - nesneye bagli fiber sayisi.
-    // Fiber silindiginde (dogrudan ya da bagli nesne silindigi icin) port kendiliginden bosalir; tutulacak bir sayac yok.
-    // Portu olan tipler: Kabin ve Santral. Menhol ve Konut'ta port kavrami yok.
-    public class PortDenetimi (AppDbContext db)
+    // Boş port = kapasite - nesneye bağlı fiber sayısı. Sayaç tutulmaz: fiber silinince port kendiliğinden boşalır.
+    // Portu olan tipler: Kabin ve Santral (Menhol ve Konut'ta port yok).
+    public class PortDenetimi(AppDbContext db)
     {
-        public async Task<Dictionary<Guid, int>>BosPortlar(Guid projeId)
+        // Projedeki kabin ve santralların boş port sayısı (anahtar: nesne Id'si)
+        public async Task<Dictionary<Guid, int>> BosPortlar(Guid projeId)
         {
-            var bos = new Dictionary<Guid, int>();
-            foreach (var kabin in await db.Kabinler.Where(k => k.ProjeId == projeId).Select(k => new { k.Id, kapasite= k.KabinKapasitesi }).ToListAsync())
-            {
-                bos[kabin.Id] = kabin.kapasite;
-            }
+            var kabinler = await db.Kabinler.Where(k => k.ProjeId == projeId)
+                .Select(k => new { k.Id, Kapasite = k.KabinKapasitesi }).ToListAsync();
+            var santraller = await db.Santraller.Where(s => s.ProjeId == projeId)
+                .Select(s => new { s.Id, s.Kapasite }).ToListAsync();
+            var bos = kabinler.Concat(santraller).ToDictionary(x => x.Id, x => x.Kapasite);
 
-            foreach (var s in await db.Santraller.Where(s => s.ProjeId == projeId).Select(s => new { s.Id, s.Kapasite }).ToListAsync())
-            { 
-                bos[s.Id] = s.Kapasite;
-            }
-            var uclar = await db.Fiberler.Where(f => f.ProjeId == projeId).Select(f => new { f.BaslangicId, f.BitisId }).ToListAsync();
-
-            //portu olmayan uclar bulunmadığından otomatik atlanır.
-            foreach (var u in uclar)
+            var fiberler = await db.Fiberler.Where(f => f.ProjeId == projeId)
+                .Select(f => new { f.BaslangicId, f.BitisId }).ToListAsync();
+            foreach (var f in fiberler)
             {
-                if (bos.ContainsKey(u.BaslangicId)) 
-                    bos[u.BaslangicId]--;
-                if (bos.ContainsKey(u.BitisId)) 
-                    bos[u.BitisId]--;
+                // Portu olmayan uçlar (menhol, konut) sözlükte yoktur, atlanır
+                if (bos.ContainsKey(f.BaslangicId)) bos[f.BaslangicId]--;
+                if (bos.ContainsKey(f.BitisId)) bos[f.BitisId]--;
             }
             return bos;
         }
 
-        //fiber eklemeden önce iki uçta da boş port kontrolü
+        // Fiber eklemeden önce iki uçta da boş port var mı. Uygunsa null döner.
         public async Task<string?> Denetle(Guid projeId, Guid baslangicId, Guid bitisId)
         {
             var bos = await BosPortlar(projeId);
@@ -46,7 +39,7 @@ namespace WebMap.Services
             return null;
         }
 
-        // Bir nesneye bagli fiber sayisi
-        public Task<int> FiberSayisi(Guid nesneId) => db.Fiberler.CountAsync(f => f.BaslangicId == nesneId || f.BitisId == nesneId);
+        // Bir nesneye bağlı fiber sayısı
+        public Task<int> FiberSayisi(Guid nesneId) => db.BagliFiberler(nesneId).CountAsync();
     }
 }

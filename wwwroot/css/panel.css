@@ -1,6 +1,5 @@
-/* Giris ve kullanici yonetimi sayfalarinin ortak stili.
-   Renkler, yaricaplar ve golgeler map.css'teki harita arayuzunden alindi;
-   iki sayfa da haritayla ayni dili konussun diye tek dosyada toplandi. */
+/* Giriş ve kullanıcı yönetimi sayfalarının ortak stili.
+   Renkler, yuvarlaklıklar ve gölgeler map.css'teki harita arayüzünden alındı; sayfalar aynı görünsün. */
 
 :root {
     --mavi: #0d6efd;
@@ -19,8 +18,8 @@
     --metin: #1f2a36;
     --soluk: #6b7785;
 
-    --yuvarlak: 6px;          /* toolbar butonlariyla ayni */
-    --yuvarlak-buyuk: 10px;   /* rapor penceresiyle ayni */
+    --yuvarlak: 6px;          /* araç çubuğu butonlarıyla aynı */
+    --yuvarlak-buyuk: 10px;   /* rapor penceresiyle aynı */
     --golge-serit: 0 1px 5px rgba(0, 0, 0, .4);
     --golge-kart: 0 12px 40px rgba(0, 0, 0, .3);
     --odak: 0 0 0 2px rgba(13, 110, 253, .35);
@@ -39,7 +38,7 @@ body {
     font: var(--yazi);
 }
 
-/* ===== Ortak form ogeleri ===== */
+/* ===== Ortak form öğeleri ===== */
 .alan {
     display: block;
     margin-bottom: 14px;
@@ -104,7 +103,7 @@ body {
         background: var(--kirmizi-koyu);
     }
 
-/* ===== Bildirim seritleri ===== */
+/* ===== Bildirim şeritleri ===== */
 .uyari {
     margin: 0 0 16px;
     padding: 9px 11px;
@@ -122,7 +121,7 @@ body {
     color: #1d6b39;
 }
 
-/* ===== Giris sayfasi ===== */
+/* ===== Giriş sayfası ===== */
 .giris-kabuk {
     display: flex;
     align-items: center;
@@ -151,8 +150,8 @@ body {
     margin-top: 4px;
 }
 
-/* ===== Yonetim paneli ===== */
-/* Ust serit haritanin arac cubugunun aynisi: ayni beyaz, ayni golge */
+/* ===== Yönetim paneli ===== */
+/* Üst şerit haritanın araç çubuğuyla aynı: aynı beyaz, aynı gölge */
 .panel-ust {
     display: flex;
     align-items: center;
@@ -194,7 +193,7 @@ body {
         letter-spacing: .04em;
     }
 
-/* ===== Kullanici tablosu ===== */
+/* ===== Kullanıcı tablosu ===== */
 .kul-tablo {
     width: 100%;
     border-collapse: collapse;
@@ -241,7 +240,7 @@ body {
     font-weight: 400;
 }
 
-/* Yetki rozetleri: yonetici mor, duzenleme mavi, goruntuleme notr */
+/* Yetki rozetleri: yönetici mor, düzenleme mavi, görüntüleme nötr, onaylayıcı yeşil */
 .rozet {
     display: inline-block;
     padding: 3px 9px;
@@ -265,12 +264,13 @@ body {
     background: var(--notr);
     color: var(--soluk);
 }
+
 .rozet-onaylayici {
     background: #e8f5ec;
     color: var(--yesil);
 }
 
-/* ===== Kullanici ekleme formu ===== */
+/* ===== Kullanıcı ekleme formu ===== */
 .kul-ekle {
     display: flex;
     flex-wrap: wrap;
@@ -287,7 +287,7 @@ body {
         flex: none;
     }
 
-/* ===== Yetkisiz sayfasi ===== */
+/* ===== Yetkisiz sayfası ===== */
 .giris-kart a.dugme {
     display: inline-block;
 }

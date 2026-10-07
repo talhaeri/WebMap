@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "leaflet.browser.print": "^2.0.2"
+  }
+}

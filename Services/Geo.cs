@@ -3,30 +3,25 @@ using NetTopologySuite.IO;
 
 namespace WebMap.Services
 {
-    // Cografi yardimcilar.
-    // WKT metnini NetTopologySuite okur (GeometriDenetimi ile ayni kutuphane).
-    // Uzunluk NTS'e HESAPLATILMAZ: koordinatlar boylam/enlem oldugu icin geometry.Length
-    // DERECE doner (ornegin 0.0009), metre degil. Metre icin iki nokta arasi Haversine kullanilir.
+    // Coğrafi yardımcılar. Koordinatlar boylam/enlem olduğu için NTS'in Length'i metre değil derece verir;
+    // metre için ardışık noktalar arası Haversine kullanılır.
     public static class Geo
     {
-        // LINESTRING WKT -> toplam uzunluk (metre). Haversine; sehir olcegi mesafelerde yeterli.
-        // Okunamayan metin 0 doner: maliyet raporu tek bozuk kayit yuzunden patlamasin.
+        // LINESTRING WKT'nin toplam uzunluğu (metre).
+        // Okunamayan metin 0 döner: tek bozuk kayıt maliyet raporunu bozmasın.
         public static double LineStringUzunlukMetre(string wkt)
         {
             Coordinate[] k;
-            try { k = new WKTReader().Read(wkt).Coordinates; }   // WKTReader thread-safe degil: cagri basina yeni ornek
+            try { k = new WKTReader().Read(wkt).Coordinates; }   // WKTReader thread-safe değil: her çağrıda yeni örnek
             catch { return 0; }
 
-            double toplam = 0;
-            for (int i = 1; i < k.Length; i++)
-                toplam += Haversine(k[i - 1], k[i]);
-            return toplam;
+            return k.Zip(k.Skip(1), Haversine).Sum();
         }
 
-        // Koordinatlarda X = boylam, Y = enlem.
+        // X = boylam, Y = enlem
         static double Haversine(Coordinate a, Coordinate b)
         {
-            const double R = 6_371_000; // Dunya yaricapi (m)
+            const double R = 6_371_000;   // Dünya yarıçapı (m)
             double dLat = Rad(b.Y - a.Y);
             double dLon = Rad(b.X - a.X);
             double h = Math.Sin(dLat / 2) * Math.Sin(dLat / 2)

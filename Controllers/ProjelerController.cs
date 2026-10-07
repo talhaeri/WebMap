@@ -6,7 +6,6 @@ using Microsoft.EntityFrameworkCore;
 using WebMap.Data;
 using WebMap.Models;
 using WebMap.Services;
-using static WebMap.Models.ProjeSabitler;
 
 namespace WebMap.Controllers;
 
@@ -14,8 +13,7 @@ namespace WebMap.Controllers;
 [Route("api/projeler")]
 public class ProjelerController(AppDbContext db, MaliyetHesaplayici maliyetHesaplayici, ProjeAkisi akis, KullaniciBaglami kullanici) : ControllerBase
 {
-    // Onay bekleyenler listenin basinda, sonra ada gore.
-    // Goruntuleme rolu query filter sayesinde sadece onayli projeleri alir.
+    // Onay bekleyenler başta, sonra ada göre. Görüntüleme rolü query filter sayesinde sadece onaylıları alır.
     [HttpGet]
     public async Task<IActionResult> Listele()
     {
@@ -27,12 +25,12 @@ public class ProjelerController(AppDbContext db, MaliyetHesaplayici maliyetHesap
         return Ok(liste);
     }
 
-    // Tek proje ve oturumdaki kullanicinin bu projede neler yapabilecegi (izinler).
-    // Arayuz butonlari bu listeden uretilecek; kural JavaScript'e kopyalanmaz.
+    // Tek proje ve oturumdaki kullanıcının bu projede yapabilecekleri (izinler).
+    // Arayüz butonları buradan üretilir; kural JavaScript'e kopyalanmaz.
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> Detay(Guid id)
     {
-        var proje = await db.Projeler.FindAsync(id);   // query filter uygulanir: gorunmeyen proje 404
+        var proje = await db.Projeler.FindAsync(id);   // query filter uygulanır: görünmeyen proje 404
         if (proje is null) return NotFound();
 
         return Ok(new
@@ -55,7 +53,7 @@ public class ProjelerController(AppDbContext db, MaliyetHesaplayici maliyetHesap
         });
     }
 
-    // Govde: { "projeAdi": "...", "geometri": "POLYGON((...))" }. Yeni proje her zaman Planlama'da baslar.
+    // Gövde: { "projeAdi": "...", "geometri": "POLYGON((...))" }. Yeni proje her zaman Planlama'da başlar.
     [HttpPost]
     [Authorize(Roles = Yetkiler.Duzenleyebilir)]
     public async Task<IActionResult> Ekle([FromBody] ProjeEkleDto dto)
@@ -67,14 +65,14 @@ public class ProjelerController(AppDbContext db, MaliyetHesaplayici maliyetHesap
             OlusturanId = kullanici.Id,
             OlusturanAdi = kullanici.Ad
         };
-        db.Projeler.Add(proje);   // Guid Id burada uretilir; gecmis satiri onu kullanir
+        db.Projeler.Add(proje);   // Guid Id burada üretilir; geçmiş satırı onu kullanır
         db.ProjeGecmisi.Add(ProjeGecmisi.Yeni(proje.Id, proje.ProjeAdi, ProjeIslemleri.Olustur, kullanici.Id, kullanici.Ad));
         await db.SaveChangesAsync();
         return Ok(new { proje.Id, proje.ProjeAdi, proje.Geometri, OlusturmaTarihi = Utc(proje.OlusturmaTarihi), proje.Durum });
     }
 
-    // Durum gecisi. Govde: { "islem": "OnayaGonder" | "GeriCek" | "Onayla" | "Reddet" | "PlanlamayaAl", "not": "..." }
-    // Rol ozniteligi yok: kimin hangi durumda ne yapabilecegini ProjeKurallari.Makine belirliyor.
+    // Durum geçişi. Gövde: { "islem": "OnayaGonder" | "GeriCek" | "Onayla" | "Reddet" | "PlanlamayaAl", "not": "..." }
+    // Rol özniteliği yok: kimin hangi durumda ne yapabileceğine ProjeKurallari.Makine karar verir.
     [HttpPost("{id:guid}/islem")]
     public async Task<IActionResult> Islem(Guid id, [FromBody] ProjeIslemDto dto)
     {
@@ -85,9 +83,7 @@ public class ProjelerController(AppDbContext db, MaliyetHesaplayici maliyetHesap
         return hata is null ? Ok(new { proje.Id, proje.Durum }) : BadRequest(hata);
     }
 
-    // Onayli projede ONAY ANINDAKI kopya (birim fiyatlar sonradan degisse de rapor degismez),
-    // diger durumlarda anlik hesap. Kalem ve toplam alanlari eskisiyle ayni (map.js degismeden calisir);
-    // kaynak / onaylayanAdi / onayTarihi yeni eklenen alanlar.
+    // Onaylı projede onay anındaki kopya (birim fiyatlar sonradan değişse de rapor değişmez), diğerlerinde anlık hesap
     [HttpGet("{id:guid}/maliyet")]
     public async Task<IActionResult> Maliyet(Guid id)
     {
@@ -111,7 +107,7 @@ public class ProjelerController(AppDbContext db, MaliyetHesaplayici maliyetHesap
         });
     }
 
-    // Projenin olay gecmisi, yeniden eskiye. Maliyet kopyasi (MaliyetJson) listeye konmaz.
+    // Projenin olay geçmişi, yeniden eskiye (maliyet kopyası listeye konmaz)
     [HttpGet("{id:guid}/gecmis")]
     public async Task<IActionResult> Gecmis(Guid id)
     {
@@ -125,9 +121,9 @@ public class ProjelerController(AppDbContext db, MaliyetHesaplayici maliyetHesap
         return Ok(liste);
     }
 
-    // Proje silme sadece yoneticide (her durumda). ProjeKilidiInterceptor ayni kayitta silinen
-    // projenin nesnelerini kilide takmaz; bu yuzden bu ucun yoneticiye kapali kalmasi sart.
-    // Gecmis FK'siz oldugu icin proje silindikten sonra da kalir.
+    // Proje silme sadece yöneticide, her durumda. ProjeKilidiInterceptor aynı kayıtta silinen projenin
+    // nesnelerini kilide takmaz; bu yüzden bu ucun yöneticiye kapalı kalması şart.
+    // Geçmiş FK'siz olduğu için proje silinince de kalır.
     [HttpDelete("{id:guid}")]
     [Authorize(Roles = Yetkiler.Yonetici)]
     public async Task<IActionResult> Sil(Guid id)
@@ -135,7 +131,7 @@ public class ProjelerController(AppDbContext db, MaliyetHesaplayici maliyetHesap
         var proje = await db.Projeler.FindAsync(id);
         if (proje is null) return NotFound();
 
-        // Projeye bagli tum nesneler de silinir (FK yok, elle).
+        // Projeye bağlı bütün nesneler de silinir (FK yok)
         db.Fiberler.RemoveRange(db.Fiberler.Where(f => f.ProjeId == id));
         db.Menholler.RemoveRange(db.Menholler.Where(m => m.ProjeId == id));
         db.Kabinler.RemoveRange(db.Kabinler.Where(k => k.ProjeId == id));
@@ -148,8 +144,8 @@ public class ProjelerController(AppDbContext db, MaliyetHesaplayici maliyetHesap
         return Ok();
     }
 
-    // Tarihler veritabanina UTC yaziliyor ama okunurken "saat dilimi belirsiz" geliyor ve JSON'a
-    // "Z" olmadan yaziliyor; tarayici bunu yerel saat sanip 3 saat kaydirir. UTC olarak isaretlenir.
+    // Tarihler veritabanına UTC yazılır ama okununca "saat dilimi belirsiz" gelir ve JSON'a "Z" olmadan
+    // yazılır; tarayıcı yerel saat sanıp 3 saat kaydırır. Bu yüzden UTC olarak işaretlenir.
     static DateTime? Utc(DateTime? t) => t is null ? null : DateTime.SpecifyKind(t.Value, DateTimeKind.Utc);
 }
 

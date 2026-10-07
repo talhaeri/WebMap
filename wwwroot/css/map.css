@@ -3,7 +3,7 @@
     margin: 0;
 }
 
-/* _Layout.cshtml'deki <main>, ekranin geri kalan tum alanini kaplasin. */
+/* _Layout.cshtml'deki <main> ekranın tamamını kaplasın */
 main {
     display: flex;
     flex-direction: column;
@@ -20,7 +20,7 @@ main {
     height: 100%;
 }
 
-/* Arac cubugu: haritanin en ustunde duran beyaz serit */
+/* Araç çubuğu: haritanın üstünde duran beyaz şerit */
 .toolbar {
     position: absolute;
     top: 0;
@@ -36,7 +36,7 @@ main {
     box-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
 }
 
-/* Arac cubugu icindeki butonlar: sadece ikon, kare kutu */
+/* Araç çubuğundaki butonlar: sadece ikon, kare kutu */
 .toolbar-btn {
     display: flex;
     align-items: center;
@@ -64,23 +64,23 @@ main {
         box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.35);
     }
 
-    /* Proje secilmeden nesne araclari kilitli */
+    /* Proje seçilmeden ya da izin yokken araçlar kilitli */
     .toolbar-btn:disabled {
         opacity: 0.35;
         cursor: not-allowed;
     }
 
-/* Cikis formu arac cubugunda yer kaplamasin; butonu dogrudan flex ogesi yapar */
+/* Çıkış formu yer kaplamasın; butonu doğrudan flex öğesi yapar */
 .toolbar-form {
     display: contents;
 }
 
-/* Kullanicilar baglantisi butonlarla ayni gorunsun */
+/* Kullanıcılar bağlantısı butonlarla aynı görünsün */
 a.toolbar-btn {
     text-decoration: none;
 }
 
-/* Arac cubugundaki gruplari ayiran dikey cizgi */
+/* Araç çubuğundaki grupları ayıran dikey çizgi */
 .toolbar-ayrac {
     width: 1px;
     align-self: stretch;
@@ -88,7 +88,7 @@ a.toolbar-btn {
     margin: 2px 2px;
 }
 
-/* Proje secici dropdown */
+/* Proje seçici açılır liste */
 .proje-sec {
     height: 40px;
     padding: 0 8px;
@@ -96,18 +96,18 @@ a.toolbar-btn {
     border-radius: 6px;
     background: #fff;
     font: 13px/1 system-ui, -apple-system, "Segoe UI", sans-serif;
-    max-width: 260px;   /* ada durum etiketi de ekleniyor: "datatest · Onay bekliyor" */
+    max-width: 260px;   /* proje adının yanına durum etiketi de eklenir: "datatest · Onay bekliyor" */
     cursor: pointer;
 }
 
-/* Durum seridi: rozet + islem butonlari (toolbar icinde) */
+/* Durum şeridi: rozet ve işlem butonları (araç çubuğunun içinde) */
 .durum-seridi {
     display: flex;
     align-items: center;
     gap: 6px;
 }
 
-    /* display:flex, hidden ozniteligini ezer; gizlenebilmesi icin acikca yazilmali */
+    /* display:flex, hidden özniteliğini ezer; gizlenebilsin diye açıkça yazılır */
     .durum-seridi[hidden] {
         display: none;
     }
@@ -148,23 +148,22 @@ a.toolbar-btn {
 
 .ikon-menhol {
     border-radius: 50%;
-    background:saddlebrown;
+    background: saddlebrown;
 }
 
 .ikon-kabin {
     border-radius: 2px;
-    background:cyan
+    background: cyan;
 }
 
-
-/* Popup icindeki form */
+/* Popup içindeki form */
 .leaflet-popup-content form label {
     display: block;
     margin-bottom: 6px;
     font: 13px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
-/* Kod alanindaki degistirilemeyen sabit onek */
+/* Kod alanındaki değiştirilemeyen sabit önek */
 .kod-onek {
     display: inline-block;
     padding: 2px 4px;
@@ -191,7 +190,7 @@ a.toolbar-btn {
     margin-top: 4px;
 }
 
-/* Popup alt butonlari: Duzenle (mavi) + Sil (kirmizi) */
+/* Popup alt butonları: Düzenle (mavi), Sil (kırmızı) */
 .popup-butonlar {
     display: flex;
     gap: 6px;
@@ -213,9 +212,8 @@ a.toolbar-btn {
     .popup-butonlar [data-sil] { background: #e74c3c; }
     .popup-butonlar [data-sil]:hover { background: #d84332; }
 
-/* Bildirim/onay kutusu Notiflix ile; maliyet raporu tablosu Grid.js ile (kendi stillerini enjekte ederler). */
-
-/* Maliyet raporu: native <dialog> kabuğu (backdrop + Esc yerlesik), tablo Grid.js */
+/* Tablo penceresi (maliyet raporu, geçmiş): yerel <dialog> kabuğu, arka plan ve Esc hazır gelir; tablo Grid.js'in.
+   Bildirim ve onay kutuları Notiflix'in. İkisi de kendi stilini kendi ekler. */
 .rapor-dialog {
     border: none;
     border-radius: 10px;

@@ -1,6 +1,6 @@
 ﻿@{
     ViewData["Title"] = "Harita";
-    // Proje olusturma yetkisi sayfa acilirken bir kez hesaplanir; kural Services/ProjeKurallari.cs'te.
+    // Kural Services/ProjeKurallari.cs'te; sayfa açılırken bir kez hesaplanır
     var rol = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
     var projeOlusturabilir = WebMap.Services.ProjeKurallari.ProjeOlusturabilir(rol);
 }
@@ -26,8 +26,13 @@
                 <path d="M4 4h12M4 8h12M4 12h8M4 16h10" fill="none" stroke="#333" stroke-width="2" stroke-linecap="round" />
             </svg>
         </button>
+        <button type="button" class="toolbar-btn" id="proje-yazdir-btn" title="Yazdır" disabled>
+            <svg viewBox="0 0 20 20" width="20" height="20">
+                <path d="M4 7h12v6H4zM6 3h8v4H6zM4 13h12v4H4z" fill="none" stroke="#333" stroke-width="2" />
+            </svg>
+        </button>
 
-        @* Durum rozeti + izin verilen islem butonlari. Icerigi map.js (seritGuncelle) kurar. *@
+        @* Durum rozeti ve izinli işlem butonları: içeriği map.js (seritGuncelle) doldurur *@
         <div id="durum-seridi" class="durum-seridi" hidden></div>
 
         <span class="toolbar-ayrac"></span>
@@ -57,8 +62,7 @@
             </a>
         }
 
-        @* Cikis bir baglanti degil form POST u: GET olsaydi sayfaya dusen bir
-           resim etiketi bile kullaniciyi dusurebilirdi. *@
+        @* Çıkış bağlantı değil POST formu: GET olsaydı sayfaya konmuş bir resim etiketi bile kullanıcıyı çıkarırdı *@
         <form method="post" asp-controller="Hesap" asp-action="Cikis" class="toolbar-form">
             <button type="submit" class="toolbar-btn" title="Cikis (@User.Identity?.Name)">
                 <svg viewBox="0 0 20 20" width="20" height="20"><path d="M8 3H4v14h4M12 7l3 3-3 3M15 10H8" fill="none" stroke="#e74c3c" stroke-width="2" stroke-linecap="round" /></svg>
@@ -66,7 +70,7 @@
         </form>
     </div>
 
-    @* Razor bool degerini True/False basar; JS'teki === 'true' karsilastirmasi icin kucuk harf. *@
+    @* Razor bool'u True/False basar; map.js'teki === 'true' karşılaştırması için küçük harf yazılır *@
     <div id="map" data-proje-olusturabilir="@(projeOlusturabilir ? "true" : "false")"></div>
 </div>
 
@@ -75,6 +79,7 @@
             integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
             crossorigin="">
     </script>
+    <script src="https://unpkg.com/leaflet.browser.print@2.0.2/dist/leaflet.browser.print.min.js"></script>
     <script src="https://unpkg.com/@@geoman-io/leaflet-geoman-free@@2.20.0/dist/leaflet-geoman.min.js"></script>
     <script src="https://unpkg.com/wellknown@0.5.0/wellknown.js"></script>
     <script src="https://unpkg.com/notiflix@3.2.8/dist/notiflix-aio-3.2.8.min.js"></script>

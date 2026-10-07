@@ -1,0 +1,51 @@
+# WebMap + GeoServer. Calistirma (bu klasorde): docker compose up -d --build
+# Parolalar .env dosyasindan gelir, bu dosyaya yazilmaz.
+
+services:
+  webmap:
+    build: .
+    image: webmap:${WEBMAP_ETIKET:-1.0}
+    restart: unless-stopped
+    ports:
+      # HTTPS (Caddy) gelene kadar uygulamaya sadece bu bilgisayardan erisilir.
+      - "127.0.0.1:8082:8080"
+    environment:
+      # appsettings.json'daki baglanti dizesini ezer ( __ = : ).
+      ConnectionStrings__DbPath: "Server=host.docker.internal,1433;Database=WebMapDb;User Id=WebMapApp;Password=${SQL_PAROLA};TrustServerCertificate=True"
+      # Giris cerezi anahtarlari asagidaki volume'a yazilir (bkz. Program.cs).
+      AnahtarKlasoru: /keys
+    volumes:
+      - keys:/keys
+
+  geoserver:
+    image: kartoza/geoserver:3.0.1
+    restart: unless-stopped
+    ports:
+      # Yonetim arayuzu ve QGIS icin. Kullanicilar haritayi WebMap uzerinden gorur.
+      - "127.0.0.1:8081:8080"
+    environment:
+      GEOSERVER_ADMIN_USER: admin
+      # Sadece ilk acilista uygulanir; sonra arayuzden degistirirsen o gecerli kalir.
+      GEOSERVER_ADMIN_PASSWORD: ${GS_ADMIN_PAROLA}
+      # Varsayilan 10 eklenti yerine sadece bu ikisi acilir.
+      # Not: ACTIVE_EXTENSIONS yazilinca STABLE_EXTENSIONS okunmaz, o yuzden sqlserver-plugin burada.
+      ACTIVE_EXTENSIONS: control-flow-plugin,sqlserver-plugin
+      # http://localhost:8081 adresi /geoserver/web sayfasina yonlensin.
+      ROOT_WEBAPP_REDIRECT: "true"
+      INITIAL_MEMORY: 512M
+      MAXIMUM_MEMORY: 2G
+    volumes:
+      # Workspace, store, katman ve stiller burada durur.
+      - gs_data:/opt/geoserver/data_dir
+      # Guvenlik kilit dosyasi. Bu volume olmazsa konteyner her yenilendiginde
+      # guvenlik ayarlari varsayilana doner (Faz 2.4 deneyi).
+      - gs_settings:/settings
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "-o", "/dev/null", "http://localhost:8080/geoserver/web/"]
+      interval: 1m
+      start_period: 2m
+
+volumes:
+  keys:
+  gs_data:
+  gs_settings:

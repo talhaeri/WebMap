@@ -22,13 +22,12 @@ public class KonutlarController(AppDbContext db, GeometriDenetimi denetim) : Con
         return Ok(liste);
     }
 
-    // Govde: { "projeId": "<guid>", "geometri": "POLYGON((...))", "uavtKod": 123, "bbKsayi": 8 }
+    // Gövde: { "projeId": "<guid>", "geometri": "POLYGON((...))", "uavtKod": 1234567890, "bbKsayi": 8 }
     [HttpPost]
     [Authorize(Roles = Yetkiler.Duzenleyebilir)]
     public async Task<IActionResult> Ekle([FromBody] KonutEkleDto dto)
     {
-        // Proje siniri + poligon ustune yerlesim kurallari (Services/GeometriDenetimi.cs)
-        var hata = await denetim.Denetle(dto.ProjeId, dto.Geometri, "Konut");
+        var hata = await denetim.Denetle(dto.ProjeId, dto.Geometri, "Konut");   // yerleşim kuralları
         if (hata is not null) return BadRequest(hata);
 
         var konut = new Konut { ProjeId = dto.ProjeId, Geometri = dto.Geometri, UAVTKod = dto.UAVTKod, BBKsayi = dto.BBKsayi };
@@ -37,7 +36,7 @@ public class KonutlarController(AppDbContext db, GeometriDenetimi denetim) : Con
         return Ok(new { konut.Id, konut.Geometri, konut.UAVTKod, konut.BBKsayi });
     }
 
-    // Govde: Ekle ile ayni sekil; ProjeId ve Geometri degistirilemez (goz ardi edilir).
+    // Gövde Ekle ile aynı; ProjeId ve Geometri değiştirilemez (yok sayılır)
     [HttpPut("{id:guid}")]
     [Authorize(Roles = Yetkiler.Duzenleyebilir)]
     public async Task<IActionResult> Guncelle(Guid id, [FromBody] KonutEkleDto dto)
@@ -57,8 +56,7 @@ public class KonutlarController(AppDbContext db, GeometriDenetimi denetim) : Con
     {
         var konut = await db.Konutlar.FindAsync(id);
         if (konut is null) return NotFound();
-        // Bu nesneye bagli fiberler de silinir (FK yok, elle).
-        db.Fiberler.RemoveRange(db.Fiberler.Where(f => f.BaslangicId == id || f.BitisId == id));
+        db.Fiberler.RemoveRange(db.BagliFiberler(id));   // bağlı fiberler de silinir (FK yok)
         db.Konutlar.Remove(konut);
         await db.SaveChangesAsync();
         return Ok();

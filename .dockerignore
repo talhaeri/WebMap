@@ -1,0 +1,23 @@
+# docker build'e gonderilmeyecek dosyalar
+
+# Windows'taki derleme ciktilari. Imaja karisirsa Linux'taki derleme bozulur.
+**/bin
+**/obj
+
+# Arac ve depo klasorleri
+**/.vs
+**/.git
+**/.claude
+**/node_modules
+
+# GeoServer stilleri ve SQL betigi WebMap imajinda gerekmez
+geoserver
+
+# Kisisel ayarlar ve parolalar imaja girmesin
+**/*.user
+**/.env
+
+# Docker dosyalarinin kendisi
+**/Dockerfile*
+**/.dockerignore
+**/docker-compose*

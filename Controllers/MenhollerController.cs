@@ -22,17 +22,15 @@ public class MenhollerController(AppDbContext db, GeometriDenetimi denetim, KodD
         return Ok(liste);
     }
 
-    // Govde: { "projeId": "<guid>", "konum": "POINT(lon lat)", "kod": "...", "derinlik": 1.5 }
+    // Gövde: { "projeId": "<guid>", "konum": "POINT(lon lat)", "kod": "...", "derinlik": 1.5 }
     [HttpPost]
     [Authorize(Roles = Yetkiler.Duzenleyebilir)]
     public async Task<IActionResult> Ekle([FromBody] MenholEkleDto dto)
     {
-        // Proje siniri + poligon ustune yerlesim kurallari (Services/GeometriDenetimi.cs)
-        var hata = await denetim.Denetle(dto.ProjeId, dto.Konum, "Menhol");
+        var hata = await denetim.Denetle(dto.ProjeId, dto.Konum, "Menhol");   // yerleşim kuralları
         if (hata is not null) return BadRequest(hata);
 
-        // Kod butun projelerde tek olmali (Services/KodDenetimi.cs)
-        var kodHatasi = await kodDenetimi.Denetle("Menhol", dto.Kod);
+        var kodHatasi = await kodDenetimi.Denetle("Menhol", dto.Kod);   // kod bütün projelerde tek
         if (kodHatasi is not null) return BadRequest(kodHatasi);
 
         var menhol = new Menhol { ProjeId = dto.ProjeId, Konum = dto.Konum, Kod = dto.Kod, Derinlik = dto.Derinlik };
@@ -41,7 +39,7 @@ public class MenhollerController(AppDbContext db, GeometriDenetimi denetim, KodD
         return Ok(new { menhol.Id, menhol.Konum, menhol.Kod, menhol.Derinlik });
     }
 
-    // Govde: Ekle ile ayni sekil; ProjeId ve Konum degistirilemez (goz ardi edilir).
+    // Gövde Ekle ile aynı; ProjeId ve Konum değiştirilemez (yok sayılır)
     [HttpPut("{id:guid}")]
     [Authorize(Roles = Yetkiler.Duzenleyebilir)]
     public async Task<IActionResult> Guncelle(Guid id, [FromBody] MenholEkleDto dto)
@@ -49,7 +47,6 @@ public class MenhollerController(AppDbContext db, GeometriDenetimi denetim, KodD
         var menhol = await db.Menholler.FindAsync(id);
         if (menhol is null) return NotFound();
 
-        // Kod butun projelerde tek olmali (Services/KodDenetimi.cs)
         var kodHatasi = await kodDenetimi.Denetle("Menhol", dto.Kod, id);
         if (kodHatasi is not null) return BadRequest(kodHatasi);
 
@@ -65,8 +62,7 @@ public class MenhollerController(AppDbContext db, GeometriDenetimi denetim, KodD
     {
         var menhol = await db.Menholler.FindAsync(id);
         if (menhol is null) return NotFound();
-        // Bu nesneye bagli fiberler de silinir (FK yok, elle).
-        db.Fiberler.RemoveRange(db.Fiberler.Where(f => f.BaslangicId == id || f.BitisId == id));
+        db.Fiberler.RemoveRange(db.BagliFiberler(id));   // bağlı fiberler de silinir (FK yok)
         db.Menholler.Remove(menhol);
         await db.SaveChangesAsync();
         return Ok();

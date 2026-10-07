@@ -10,7 +10,7 @@ using WebMap.Models;
 
 namespace WebMap.Controllers
 {
-    // Program.cs'teki FallbackPolicy her seyi kapatiyor; giris sayfasinin acik kalmasi icin bu controller acikca [AllowAnonymous].
+    // Program.cs'teki FallbackPolicy her şeyi kapatır; giriş sayfası açık kalsın diye [AllowAnonymous]
     [AllowAnonymous]
     public class HesapController(AppDbContext db, IPasswordHasher<Kullanici> hasher) : Controller
     {
@@ -32,7 +32,7 @@ namespace WebMap.Controllers
                 hasher.VerifyHashedPassword(kullanici, kullanici.ParolaHash, parola)
                     != PasswordVerificationResult.Failed;
 
-            // Kullanici yoksa da parola yanlissa da AYNI mesaj: hangi kullanici adinin var oldugu disariya sizmasin.
+            // Kullanıcı yoksa da parola yanlışsa da aynı mesaj: hangi kullanıcı adının var olduğu sızmasın
             if (!gecerli)
             {
                 ViewData["Hata"] = "Kullanici adi veya parola hatali.";
@@ -40,7 +40,7 @@ namespace WebMap.Controllers
                 return View();
             }
 
-            // Yetki cereze rol talebi olarak yaziliyor; [Authorize(Roles = ...)] bunu okuyor.
+            // Yetki, çereze rol talebi olarak yazılır; [Authorize(Roles = ...)] bunu okur
             var talepler = new List<Claim>
             {
                 new(ClaimTypes.NameIdentifier, kullanici!.Id.ToString()),
@@ -52,7 +52,7 @@ namespace WebMap.Controllers
                 CookieAuthenticationDefaults.AuthenticationScheme,
                 new ClaimsPrincipal(new ClaimsIdentity(talepler, CookieAuthenticationDefaults.AuthenticationScheme)));
 
-            // IsLocalUrl: baska siteye yonlendirme acigini kapatir.
+            // IsLocalUrl: başka siteye yönlendirme açığını kapatır
             return Url.IsLocalUrl(returnUrl) ? Redirect(returnUrl!) : RedirectToAction("Index", "Home");
         }
 

@@ -23,17 +23,15 @@ public class KabinlerController(AppDbContext db, GeometriDenetimi denetim, PortD
         return Ok(liste.Select(k => new { k.Id, k.Konum, k.Kod, k.KabinTipi, k.KabinKapasitesi, BosPort = bos.GetValueOrDefault(k.Id) }));
     }
 
-    // Govde: { "projeId": "<guid>", "konum": "POINT(lon lat)", "kod": "...", "kabinTipi": "...", "kabinKapasitesi": 288 }
+    // Gövde: { "projeId": "<guid>", "konum": "POINT(lon lat)", "kod": "...", "kabinTipi": "...", "kabinKapasitesi": 8 }
     [HttpPost]
     [Authorize(Roles = Yetkiler.Duzenleyebilir)]
     public async Task<IActionResult> Ekle([FromBody] KabinEkleDto dto)
     {
-        // Proje siniri + poligon ustune yerlesim kurallari (Services/GeometriDenetimi.cs)
-        var hata = await denetim.Denetle(dto.ProjeId, dto.Konum, "Kabin", dto.KabinTipi);
+        var hata = await denetim.Denetle(dto.ProjeId, dto.Konum, "Kabin", dto.KabinTipi);   // yerleşim kuralları
         if (hata is not null) return BadRequest(hata);
 
-        // Kod butun projelerde tek olmali (Services/KodDenetimi.cs)
-        var kodHatasi = await kodDenetimi.Denetle("Kabin", dto.Kod);
+        var kodHatasi = await kodDenetimi.Denetle("Kabin", dto.Kod);   // kod bütün projelerde tek
         if (kodHatasi is not null) return BadRequest(kodHatasi);
 
         var kabin = new Kabin
@@ -49,7 +47,7 @@ public class KabinlerController(AppDbContext db, GeometriDenetimi denetim, PortD
         return Ok(new { kabin.Id, kabin.Konum, kabin.Kod, kabin.KabinTipi, kabin.KabinKapasitesi, BosPort = kabin.KabinKapasitesi });
     }
 
-    // Govde: Ekle ile ayni sekil; ProjeId ve Konum degistirilemez (goz ardi edilir).
+    // Gövde Ekle ile aynı; ProjeId ve Konum değiştirilemez (yok sayılır)
     [HttpPut("{id:guid}")]
     [Authorize(Roles = Yetkiler.Duzenleyebilir)]
     public async Task<IActionResult> Guncelle(Guid id, [FromBody] KabinEkleDto dto)
@@ -57,11 +55,10 @@ public class KabinlerController(AppDbContext db, GeometriDenetimi denetim, PortD
         var kabin = await db.Kabinler.FindAsync(id);
         if (kabin is null) return NotFound();
 
-        // Kod butun projelerde tek olmali (Services/KodDenetimi.cs)
         var kodHatasi = await kodDenetimi.Denetle("Kabin", dto.Kod, id);
         if (kodHatasi is not null) return BadRequest(kodHatasi);
 
-        // Kapasite bagli fiber sayisinin altina indirilemez (bos port eksiye duserdi)
+        // Kapasite bağlı fiber sayısının altına inemez (boş port eksiye düşerdi)
         var kullanilan = await port.FiberSayisi(id);
         if (dto.KabinKapasitesi < kullanilan)
             return BadRequest($"Kapasite bagli fiber sayisindan ({kullanilan}) kucuk olamaz.");
@@ -82,8 +79,7 @@ public class KabinlerController(AppDbContext db, GeometriDenetimi denetim, PortD
     {
         var kabin = await db.Kabinler.FindAsync(id);
         if (kabin is null) return NotFound();
-        // Bu nesneye bagli fiberler de silinir (FK yok, elle).
-        db.Fiberler.RemoveRange(db.Fiberler.Where(f => f.BaslangicId == id || f.BitisId == id));
+        db.Fiberler.RemoveRange(db.BagliFiberler(id));   // bağlı fiberler de silinir (FK yok)
         db.Kabinler.Remove(kabin);
         await db.SaveChangesAsync();
         return Ok();

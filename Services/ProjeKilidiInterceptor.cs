@@ -3,19 +3,16 @@ using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using WebMap.Data;
 using WebMap.Models;
-using static WebMap.Models.ProjeSabitler;
 
 namespace WebMap.Services
 {
-    // Proje kilidi: bir projenin ICINDEKI nesnelere (IProjeyeAit) yazilmadan once projenin durumuna bakilir.
-    // Controller'lara tek tek yazmak yerine SaveChanges'in tek kapisinda durur; yeni eklenecek uclar da korunur.
-    //
-    //   Kural   : ProjeKurallari.NesneDuzenleyebilir(rol, durum) - kural tablosu tek yerde.
-    //   Istisna : Ayni kayitta silinen projenin nesnelerine bakilmaz (proje silme; o uc sadece yoneticide).
-    //   Gecmis  : Planlama disindaki projede yapilan degisiklik (pratikte: yonetici, OnayBekliyor) ProjeGecmisi'ne yazilir.
-    //
-    // Durum tutmaz, tek ornek (singleton) butun isteklerde kullanilir. Kullaniciyi DbContext'ten okur.
-    // DIKKAT: ExecuteUpdate / ExecuteDelete SaveChanges'e ugramaz, bu kilidi atlar. Nesne tablolarinda kullanilmamali.
+    // Proje kilidi: projenin içindeki nesnelere (IProjeyeAit) yazılmadan önce projenin durumuna bakılır.
+    // Controller'lara tek tek yazmak yerine SaveChanges'in tek kapısında durur; yeni uçlar da otomatik korunur.
+    //   Kural   : ProjeKurallari.NesneDuzenleyebilir(rol, durum)
+    //   İstisna : aynı kayıtta silinen projenin nesnelerine bakılmaz (proje silme; o uç sadece yöneticide)
+    //   Geçmiş  : Planlama dışındaki projede yapılan değişiklik (pratikte yönetici, OnayBekliyor) ProjeGecmisi'ne yazılır
+    // Durum tutmaz, tek örnek (singleton) yeter. Kullanıcıyı DbContext'ten okur.
+    // DİKKAT: ExecuteUpdate ve ExecuteDelete SaveChanges'e uğramaz, kilidi atlar; nesne tablolarında kullanılmamalı.
     public class ProjeKilidiInterceptor : SaveChangesInterceptor
     {
         public override InterceptionResult<int> SavingChanges(DbContextEventData e, InterceptionResult<int> sonuc)
@@ -37,7 +34,7 @@ namespace WebMap.Services
             return sonuc;
         }
 
-        // Eklenen / degisen / silinen proje nesneleri (ayni kayitta silinen projelerinkiler haric).
+        // Eklenen, değişen ve silinen proje nesneleri (aynı kayıtta silinen projelerinkiler hariç)
         static List<EntityEntry<IProjeyeAit>> Degisenler(AppDbContext db)
         {
             var silinenProjeler = db.ChangeTracker.Entries<Proje>()
@@ -51,8 +48,8 @@ namespace WebMap.Services
                 .ToList();
         }
 
-        // Ilgili projelerin veritabanindaki hali. Gorunurluk filtresi atlanir: kilit, kullanicinin
-        // gorebildigine degil projenin gercek durumuna bakmali.
+        // İlgili projelerin veritabanındaki hali. Görünürlük filtresi atlanır:
+        // kilit, kullanıcının gördüğüne değil projenin gerçek durumuna bakmalı.
         static IQueryable<Proje> Projeler(AppDbContext db, List<EntityEntry<IProjeyeAit>> degisenler)
         {
             var idler = degisenler.Select(x => x.Entity.ProjeId).Distinct().ToList();
@@ -72,14 +69,14 @@ namespace WebMap.Services
                         _ => $"\"{proje.ProjeAdi}\" projesini düzenleme yetkiniz yok."
                     });
 
-                // Planlama'daki olagan calisma gecmise yazilmaz; sadece kilitli projedeki degisiklik.
+                // Planlama'daki olağan çalışma geçmişe yazılmaz, sadece kilitli projedeki değişiklik
                 if (proje.Durum != ProjeDurumlari.Planlama)
                     db.ProjeGecmisi.Add(ProjeGecmisi.Yeni(proje.Id, proje.ProjeAdi, ProjeIslemleri.Degistir,
                         kullanici.Id, kullanici.Ad, Ozet(degisenler.Where(x => x.Entity.ProjeId == proje.Id))));
             }
         }
 
-        // Ornek: "1 Menhol silindi, 2 Fiber silindi". Tek tek degil adetle: Not kolonu 500 karakter.
+        // Örnek: "1 Menhol silindi, 2 Fiber eklendi". Tek tek değil adetle: Not kolonu 500 karakter.
         static string Ozet(IEnumerable<EntityEntry<IProjeyeAit>> kayitlar) => string.Join(", ", kayitlar
             .GroupBy(x => (Tur: x.Metadata.ClrType.Name, x.State))
             .Select(g => $"{g.Count()} {g.Key.Tur} " + g.Key.State switch

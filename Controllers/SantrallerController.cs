@@ -23,17 +23,15 @@ public class SantrallerController(AppDbContext db, GeometriDenetimi denetim, Por
         return Ok(liste.Select(s => new { s.Id, s.Geometri, s.Kod, s.Kapasite, BosPort = bos.GetValueOrDefault(s.Id) }));
     }
 
-    // Govde: { "projeId": "<guid>", "geometri": "POLYGON((...))", "kod": "...", "kapasite": 1000 }
+    // Gövde: { "projeId": "<guid>", "geometri": "POLYGON((...))", "kod": "...", "kapasite": 1000 }
     [HttpPost]
     [Authorize(Roles = Yetkiler.Duzenleyebilir)]
     public async Task<IActionResult> Ekle([FromBody] SantralEkleDto dto)
     {
-        // Proje siniri + poligon ustune yerlesim kurallari (Services/GeometriDenetimi.cs)
-        var hata = await denetim.Denetle(dto.ProjeId, dto.Geometri, "Santral");
+        var hata = await denetim.Denetle(dto.ProjeId, dto.Geometri, "Santral");   // yerleşim kuralları
         if (hata is not null) return BadRequest(hata);
 
-        // Kod butun projelerde tek olmali (Services/KodDenetimi.cs)
-        var kodHatasi = await kodDenetimi.Denetle("Santral", dto.Kod);
+        var kodHatasi = await kodDenetimi.Denetle("Santral", dto.Kod);   // kod bütün projelerde tek
         if (kodHatasi is not null) return BadRequest(kodHatasi);
 
         var santral = new Santral
@@ -45,11 +43,10 @@ public class SantrallerController(AppDbContext db, GeometriDenetimi denetim, Por
         };
         db.Santraller.Add(santral);
         await db.SaveChangesAsync();
-        // Yeni santralin hic fiberi yok: bos port = kapasite
-        return Ok(new { santral.Id, santral.Geometri, santral.Kod, santral.Kapasite, BosPort = santral.Kapasite });
+        return Ok(new { santral.Id, santral.Geometri, santral.Kod, santral.Kapasite, BosPort = santral.Kapasite });   // yeni santralde fiber yok
     }
 
-    // Govde: Ekle ile ayni sekil; ProjeId ve Geometri degistirilemez (goz ardi edilir).
+    // Gövde Ekle ile aynı; ProjeId ve Geometri değiştirilemez (yok sayılır)
     [HttpPut("{id:guid}")]
     [Authorize(Roles = Yetkiler.Duzenleyebilir)]
     public async Task<IActionResult> Guncelle(Guid id, [FromBody] SantralEkleDto dto)
@@ -57,11 +54,10 @@ public class SantrallerController(AppDbContext db, GeometriDenetimi denetim, Por
         var santral = await db.Santraller.FindAsync(id);
         if (santral is null) return NotFound();
 
-        // Kod butun projelerde tek olmali (Services/KodDenetimi.cs)
         var kodHatasi = await kodDenetimi.Denetle("Santral", dto.Kod, id);
         if (kodHatasi is not null) return BadRequest(kodHatasi);
 
-        // Kapasite bagli fiber sayisinin altina indirilemez (bos port eksiye duserdi)
+        // Kapasite bağlı fiber sayısının altına inemez (boş port eksiye düşerdi)
         var kullanilan = await port.FiberSayisi(id);
         if (dto.Kapasite < kullanilan)
             return BadRequest($"Kapasite bagli fiber sayisindan ({kullanilan}) kucuk olamaz.");
@@ -78,8 +74,7 @@ public class SantrallerController(AppDbContext db, GeometriDenetimi denetim, Por
     {
         var santral = await db.Santraller.FindAsync(id);
         if (santral is null) return NotFound();
-        // Bu nesneye bagli fiberler de silinir (FK yok, elle).
-        db.Fiberler.RemoveRange(db.Fiberler.Where(f => f.BaslangicId == id || f.BitisId == id));
+        db.Fiberler.RemoveRange(db.BagliFiberler(id));   // bağlı fiberler de silinir (FK yok)
         db.Santraller.Remove(santral);
         await db.SaveChangesAsync();
         return Ok();

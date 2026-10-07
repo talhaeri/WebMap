@@ -3,12 +3,12 @@ using WebMap.Data;
 
 namespace WebMap.Services
 {
-    // Menhol / Kabin / Santral kodu BUTUN projelerde tek olmali (saha envanter kodu).
-    // Turler kendi aralarinda cakisamaz (onekler farkli: MNHL- / KBN- / SNTR-), her tur kendi tablosunda aranir.
-    // Uygunsa null, degilse kullaniciya gosterilecek hata metni doner.
+    // Menhol, Kabin ve Santral kodu bütün projelerde tek olmalı (saha envanter kodu).
+    // Kod önekleri farklı (MNHL-, KBN-, SNTR-) olduğu için türler birbiriyle çakışmaz; her tür kendi tablosunda aranır.
     public class KodDenetimi(AppDbContext db)
     {
-        // haricId: guncellemede nesnenin kendisi (kendi koduyla cakisma sayilmasin).
+        // Uygunsa null, değilse kullanıcıya gösterilecek hata metni döner.
+        // haricId: güncellemede nesnenin kendisi (kendi koduyla çakışmış sayılmasın)
         public async Task<string?> Denetle(string tur, string kod, Guid? haricId = null)
         {
             var projeId = tur switch

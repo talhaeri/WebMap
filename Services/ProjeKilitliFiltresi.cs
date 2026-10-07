@@ -3,9 +3,8 @@ using Microsoft.AspNetCore.Mvc.Filters;
 
 namespace WebMap.Services
 {
-    // ProjeKilitliException -> 409 Conflict. Govde duz bir JSON metni oldugu icin
-    // map.js'teki sunucuHatasi mesaji dogrudan bildirim olarak gosterir.
-    // Diger hatalara dokunmaz; onlar normal hata akisina devam eder.
+    // ProjeKilitliException -> 409 Conflict. Gövde düz metin olduğu için map.js mesajı doğrudan bildirim olarak gösterir.
+    // Başka hatalara dokunmaz.
     public class ProjeKilitliFiltresi : IExceptionFilter
     {
         public void OnException(ExceptionContext context)

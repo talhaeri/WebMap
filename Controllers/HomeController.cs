@@ -7,13 +7,10 @@ namespace WebMap.Controllers
 {
     public class HomeController : Controller
     {
-        public IActionResult Index()
-        {
-            return View();
-        }
+        public IActionResult Index() => View();
 
+        // Hata sayfası giriş yapmamış kullanıcıya da açık olmalı
         [AllowAnonymous]
-
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()
         {

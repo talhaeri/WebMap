@@ -3,7 +3,7 @@
 @{
     ViewData["Title"] = "Kullanıcılar";
 
-    // Ham yetki degeri ("yonetici") ekranda okunur etikete ve rozet rengine cevriliyor
+    // Ham yetki değeri ("yonetici") ekranda okunur etikete çevrilir
     var etiket = new Dictionary<string, string>
     {
         [Yetkiler.Yonetici] = "Yönetici",
@@ -15,7 +15,7 @@
 
 <link rel="stylesheet" href="~/css/panel.css" asp-append-version="true" />
 
-@* Ust serit haritanin arac cubuguyla ayni beyaz ve ayni golge *@
+@* Üst şerit haritanın araç çubuğuyla aynı görünür *@
 <div class="panel-ust">
     <h1>Kullanıcılar</h1>
     <a class="dugme" href="/">Haritaya dön</a>
@@ -58,8 +58,7 @@
                             </span>
                         </td>
                         <td class="sag">
-                            @* Silme baglanti degil form POST'u: GET olsaydi sayfaya dusen
-                               bir resim etiketi bile kullanici silebilirdi. *@
+                            @* Silme bağlantı değil POST formu: GET olsaydı sayfaya konmuş bir resim etiketi bile kullanıcı silerdi *@
                             <form method="post" asp-action="Sil" asp-route-id="@k.Id">
                                 <button type="submit" class="dugme dugme-tehlike">Sil</button>
                             </form>
@@ -72,8 +71,7 @@
 
     <div class="panel-kart">
         <h2>YENİ KULLANICI</h2>
-        @* Alan adlari giris formundakinden farkli ve autocomplete kapali:
-           aksi halde Chrome buraya yazilani giris ekraninda oneriyor. *@
+        @* Alan adları giriş formundakinden farklı, autocomplete kapalı: yoksa Chrome buraya yazılanı giriş ekranında önerir *@
         <form method="post" asp-action="Ekle" class="kul-ekle" autocomplete="off">
             <label class="alan">
                 Kullanıcı adı
